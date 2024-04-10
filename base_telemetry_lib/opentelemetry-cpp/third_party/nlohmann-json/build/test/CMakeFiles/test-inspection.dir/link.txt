@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-inspection.dir/src/unit-inspection.cpp.o CMakeFiles/doctest_main.dir/src/unit.cpp.o  -o test-inspection 

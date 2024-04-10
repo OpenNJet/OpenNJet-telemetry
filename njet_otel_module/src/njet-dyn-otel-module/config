@@ -1,0 +1,5 @@
+njt_module_type=HTTP
+njt_module_name="njt_agent_dyn_telemetry_module"
+njt_module_srcs="$njt_addon_dir/src/njt_agent_dyn_telemetry_module.c \
+                $njt_addon_dir/src/njt_dyn_telemetry_parser.c"
+. auto/module

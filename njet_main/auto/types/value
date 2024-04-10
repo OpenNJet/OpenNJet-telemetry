@@ -1,0 +1,13 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+cat << END >> $NJT_AUTO_CONFIG_H
+
+#ifndef $njt_param
+#define $njt_param  $njt_value
+#endif
+
+END

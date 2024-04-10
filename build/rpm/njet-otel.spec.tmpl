@@ -1,0 +1,46 @@
+Name:     njet-otel 
+Summary:  Njet OpenTelemetry module 
+
+Version:  {{NJT_VERSION}}
+Release:  1.el7
+
+#Group:    
+License:  Not Applicable
+Requires:njet
+#URL:     
+SOURCE0:  %{name}-%{version}-%{release}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+
+%description
+njet open telemetry module rpm 
+
+
+%prep
+%setup -q
+
+%build
+#Empty
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}
+cp -a * %{buildroot}
+
+%pre
+
+%post
+
+ldconfig
+
+%preun
+
+%postun
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(-,njet,njet,-)
+/usr/local/njet/modules
+/usr/local/njet/lib
+/usr/local/njet/conf

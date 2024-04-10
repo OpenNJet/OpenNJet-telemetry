@@ -1,0 +1,12 @@
+FROM ubuntu18.04:telemetry
+
+COPY njet-telemetry njet-telemetry
+RUN cd njet-telemetry \
+    && cd njet_main && ls -al && sh build_cc.sh conf && make -j `nproc` && cd .. \
+    && mkdir lib && cp baselibs/ubuntu/* lib/ \
+    && cp baselibs/ubuntu/* /usr/lib/  \
+    && cd njet_otel_module/build && ../../build/util/cmake-3.14.0-Linux-x86_64/bin/cmake .. && make \
+    && cd ../../  \
+    && cd njet_otel_webserver_module/build && ../../build/util/cmake-3.14.0-Linux-x86_64/bin/cmake .. && make \
+    && cd ../../
+

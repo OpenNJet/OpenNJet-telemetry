@@ -1,0 +1,13 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+cat << END >> $NJT_AUTO_HEADERS_H
+
+#ifndef $have
+#define $have  1
+#endif
+
+END

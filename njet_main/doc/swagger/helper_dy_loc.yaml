@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: njet-api
+  description: njet-api
+  version: 1.1.0
+servers:
+  - url: '/api'
+paths:
+  /v1/dyn_loc:
+    put:
+      tags:
+        - dyn_loc
+      summary: Delete a dynamic location from server
+      description: Delete a dynamic location from server.
+      requestBody:
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/del_location'
+          required: true
+      responses:
+        '200':
+          description: result info
+    post:
+      tags:
+        - dyn_loc
+      summary: Add a dynamic location to server
+      description: Add a dynamic location to server.
+      requestBody:
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/add_location'
+          required: true
+      responses:
+       '200':
+          description: result info
+###DEFINITIONS
+components:
+  schemas:
+    del_location:
+      title: dyn_loc
+      description: delete dynamic location from server
+      type: object
+      properties:
+        type:
+          type: string
+          description: fix value "del".
+          example: del
+        addr_port:
+          type: string
+          description: addr and port of server.
+          example: 0.0.0.0:90
+        server_name:
+          type: string
+          description:  server name .
+          example: server-90
+        location_rule:
+          type: string
+          description:  Regular Expression.
+          example: =
+        location_name:
+          type: string
+          description:  the name of location.
+          example: /clb
+    add_location:
+      title: dyn_loc
+      description: add dynamic location to server
+      type: object
+      properties:
+        type:
+          type: string
+          example: add
+        addr_port:
+          type: string
+          description: addr and port of server.
+          example: 0.0.0.0:90
+        server_name:
+          type: string
+          description:  server name .
+          example: server-90
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/nest_location'
+    nest_location:
+      title: dyn_loc
+      description: delete dynamic location from server
+      type: object
+      properties:
+        location_rule:
+          type: string
+          description:  Regular Expression.
+          example: "="
+        location_name:
+          type: string
+          description:  the name of location.
+          example: "/clb"
+        location_body:
+          type: string
+          description:  the body of location.
+          example: "return 200 ok"
+        proxy_pass:
+          type: string
+          description:  the pass of location.
+          example: "http://backend1"
+        #locations:
+         # type: array
+          #items:
+           # $ref: '#/components/schemas/nest_location'
+    

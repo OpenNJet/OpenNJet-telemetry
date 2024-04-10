@@ -1,0 +1,16 @@
+njt_addon_name=njt_http_opentelemetry_module
+
+if test -n "$njt_module_link"; then
+  njt_module_type=HTTP
+  njt_module_name=njt_http_opentelemetry_module
+  njt_module_srcs="	\
+  					$njt_addon_dir/njt_http_opentelemetry_log.c \
+  					$njt_addon_dir/njt_http_opentelemetry_module.c"
+  . auto/module
+else
+	HTTP_MODULES="$HTTP_MODULES njt_http_opentelemetry_module"
+	NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+					$njt_addon_dir/njt_http_opentelemetry_log.c \
+					$njt_addon_dir/njt_http_opentelemetry_module.c"
+fi
+CORE_LIBS="-lopentelemetry_webserver_sdk $CORE_LIBS"

@@ -1,0 +1,255 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+LINK="\$(CC)"
+
+MAIN_LINK=
+MODULE_LINK="-shared"
+
+njt_include_opt="-I "
+njt_compile_opt="-c"
+njt_pic_opt="-fPIC"
+njt_objout="-o "
+njt_binout="-o "
+njt_objext="o"
+njt_binext=
+njt_modext=".so"
+
+njt_long_start=
+njt_long_end=
+
+njt_regex_dirsep="\/"
+njt_dirsep='/'
+
+njt_regex_cont=' \\\
+	'
+njt_cont=' \
+	'
+njt_tab=' \
+		'
+njt_spacer=
+
+njt_long_regex_cont=$njt_regex_cont
+njt_long_cont=$njt_cont
+
+. auto/cc/name
+
+if test -n "$CFLAGS"; then
+
+    CC_TEST_FLAGS="$CFLAGS $NJT_CC_OPT"
+
+    case $NJT_CC_NAME in
+
+        ccc)
+            # Compaq C V6.5-207
+
+            njt_include_opt="-I"
+        ;;
+
+        sunc)
+
+            MAIN_LINK=
+            MODULE_LINK="-G"
+
+            case "$NJT_MACHINE" in
+
+                i86pc)
+                    NJT_AUX=" src/os/unix/njt_sunpro_x86.il"
+                ;;
+
+                sun4u | sun4v)
+                    NJT_AUX=" src/os/unix/njt_sunpro_sparc64.il"
+                ;;
+
+            esac
+
+            case $CPU in
+
+                amd64)
+                    NJT_AUX=" src/os/unix/njt_sunpro_amd64.il"
+                ;;
+
+            esac
+        ;;
+
+    esac
+
+else
+
+    case $NJT_CC_NAME in
+        gcc)
+            # gcc 2.7.2.3, 2.8.1, 2.95.4, egcs-1.1.2
+            #     3.0.4, 3.1.1, 3.2.3, 3.3.2, 3.3.3, 3.3.4, 3.4.0, 3.4.2
+            #     4.0.0, 4.0.1, 4.1.0
+
+            . auto/cc/gcc
+        ;;
+
+        clang)
+            # Clang C compiler
+
+            . auto/cc/clang
+        ;;
+
+        icc)
+            # Intel C++ compiler 7.1, 8.0, 8.1
+
+            . auto/cc/icc
+        ;;
+
+        sunc)
+            # Sun C 5.7 Patch 117837-04 2005/05/11
+
+            . auto/cc/sunc
+        ;;
+
+        ccc)
+            # Compaq C V6.5-207
+
+            . auto/cc/ccc
+        ;;
+
+        acc)
+            # aCC: HP ANSI C++ B3910B A.03.55.02
+
+            . auto/cc/acc
+        ;;
+
+        msvc)
+            # MSVC++ 6.0 SP2, MSVC++ Toolkit 2003
+
+            . auto/cc/msvc
+        ;;
+
+        owc)
+            # Open Watcom C 1.0, 1.2
+
+            . auto/cc/owc
+        ;;
+
+        bcc)
+            # Borland C++ 5.5
+
+            . auto/cc/bcc
+        ;;
+
+    esac
+
+    CC_TEST_FLAGS="$CC_TEST_FLAGS $NJT_CC_OPT"
+
+fi
+
+CFLAGS="$CFLAGS $NJT_CC_OPT"
+NJT_TEST_LD_OPT="$NJT_LD_OPT"
+
+if [ "$NJT_PLATFORM" != win32 ]; then
+
+    if test -n "$NJT_LD_OPT"; then
+        njt_feature=--with-ld-opt=\"$NJT_LD_OPT\"
+        njt_feature_name=
+        njt_feature_run=no
+        njt_feature_incs=
+        njt_feature_path=
+        njt_feature_libs=
+        njt_feature_test=
+        . auto/feature
+
+        if [ $njt_found = no ]; then
+            echo $0: error: the invalid value in --with-ld-opt=\"$NJT_LD_OPT\"
+            echo
+            exit 1
+        fi
+    fi
+
+
+    njt_feature="-Wl,-E switch"
+    njt_feature_name=
+    njt_feature_run=no
+    njt_feature_incs=
+    njt_feature_path=
+    njt_feature_libs=-Wl,-E
+    njt_feature_test=
+    . auto/feature
+
+    if [ $njt_found = yes ]; then
+        MAIN_LINK="-Wl,-E"
+    fi
+
+
+    if [ "$NJT_CC_NAME" = "sunc" ]; then
+        echo "checking for gcc builtin atomic operations ... disabled"
+    else
+        njt_feature="gcc builtin atomic operations"
+        njt_feature_name=NJT_HAVE_GCC_ATOMIC
+        njt_feature_run=yes
+        njt_feature_incs=
+        njt_feature_path=
+        njt_feature_libs=
+        njt_feature_test="long  n = 0;
+                          if (!__sync_bool_compare_and_swap(&n, 0, 1))
+                              return 1;
+                          if (__sync_fetch_and_add(&n, 1) != 1)
+                              return 1;
+                          if (n != 2)
+                              return 1;
+                          __sync_synchronize();"
+        . auto/feature
+    fi
+
+
+    if [ "$NJT_CC_NAME" = "ccc" ]; then
+        echo "checking for C99 variadic macros ... disabled"
+    else
+        njt_feature="C99 variadic macros"
+        njt_feature_name="NJT_HAVE_C99_VARIADIC_MACROS"
+        njt_feature_run=yes
+        njt_feature_incs="#include <stdio.h>
+#define var(dummy, ...)  sprintf(__VA_ARGS__)"
+        njt_feature_path=
+        njt_feature_libs=
+        njt_feature_test="char  buf[30]; buf[0] = '0';
+                          var(0, buf, \"%d\", 1);
+                          if (buf[0] != '1') return 1"
+        . auto/feature
+    fi
+
+
+    njt_feature="gcc variadic macros"
+    njt_feature_name="NJT_HAVE_GCC_VARIADIC_MACROS"
+    njt_feature_run=yes
+    njt_feature_incs="#include <stdio.h>
+#define var(dummy, args...)  sprintf(args)"
+    njt_feature_path=
+    njt_feature_libs=
+    njt_feature_test="char  buf[30]; buf[0] = '0';
+                      var(0, buf, \"%d\", 1);
+                      if (buf[0] != '1') return 1"
+    . auto/feature
+
+
+    njt_feature="gcc builtin 64 bit byteswap"
+    njt_feature_name="NJT_HAVE_GCC_BSWAP64"
+    njt_feature_run=no
+    njt_feature_incs=
+    njt_feature_path=
+    njt_feature_libs=
+    njt_feature_test="if (__builtin_bswap64(0)) return 1"
+    . auto/feature
+
+
+#    njt_feature="inline"
+#    njt_feature_name=
+#    njt_feature_run=no
+#    njt_feature_incs="int inline f(void) { return 1 }"
+#    njt_feature_path=
+#    njt_feature_libs=
+#    njt_feature_test=
+#    . auto/feature
+#
+#    if [ $njt_found = yes ]; then
+#    fi
+
+fi

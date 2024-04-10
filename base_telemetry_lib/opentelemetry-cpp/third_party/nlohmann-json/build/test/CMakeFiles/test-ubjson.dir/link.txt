@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-ubjson.dir/src/unit-ubjson.cpp.o CMakeFiles/doctest_main.dir/src/unit.cpp.o  -o test-ubjson 

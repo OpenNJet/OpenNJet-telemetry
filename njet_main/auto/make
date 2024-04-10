@@ -1,0 +1,675 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+echo "creating $NJT_MAKEFILE"
+
+mkdir -p $NJT_OBJS/src/core $NJT_OBJS/src/event $NJT_OBJS/src/event/modules \
+         $NJT_OBJS/src/event/quic \
+         $NJT_OBJS/src/os/unix $NJT_OBJS/src/os/win32 \
+         $NJT_OBJS/src/http $NJT_OBJS/src/http/v2 $NJT_OBJS/src/http/v3 \
+         $NJT_OBJS/src/http/modules $NJT_OBJS/src/http/modules/perl \
+         $NJT_OBJS/src/mail \
+         $NJT_OBJS/src/stream \
+         $NJT_OBJS/src/misc
+
+
+njt_objs_dir=$NJT_OBJS$njt_regex_dirsep
+njt_use_pch=`echo $NJT_USE_PCH | sed -e "s/\//$njt_regex_dirsep/g"`
+
+
+cat << END                                                     > $NJT_MAKEFILE
+
+CC =	$CC
+CFLAGS = $CFLAGS
+CPP =	$CPP
+LINK =	$LINK
+
+END
+
+
+if test -n "$NJT_PERL_CFLAGS"; then
+    echo NJT_PERL_CFLAGS = $NJT_PERL_CFLAGS                   >> $NJT_MAKEFILE
+    echo NJT_PM_CFLAGS = $NJT_PM_CFLAGS                       >> $NJT_MAKEFILE
+    echo NJT_PM_LDFLAGS = $NJT_PM_LDFLAGS                     >> $NJT_MAKEFILE
+fi
+
+
+# ALL_INCS, required by the addons and by OpenWatcom C precompiled headers
+
+njt_incs=`echo $CORE_INCS $NJT_OBJS $HTTP_INCS $MAIL_INCS $STREAM_INCS\
+    | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont$njt_include_opt\1/g" \
+          -e "s/\//$njt_regex_dirsep/g"`
+
+cat << END                                                    >> $NJT_MAKEFILE
+
+ALL_INCS = $njt_include_opt$njt_incs
+
+END
+
+
+njt_all_srcs="$CORE_SRCS"
+
+
+# the core dependencies and include paths
+
+njt_deps=`echo $CORE_DEPS $NJT_AUTO_CONFIG_H $NJT_PCH \
+    | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+          -e "s/\//$njt_regex_dirsep/g"`
+
+njt_incs=`echo $CORE_INCS $NJT_OBJS \
+    | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont$njt_include_opt\1/g" \
+          -e "s/\//$njt_regex_dirsep/g"`
+
+cat << END                                                    >> $NJT_MAKEFILE
+
+CORE_DEPS = $njt_deps
+
+
+CORE_INCS = $njt_include_opt$njt_incs
+
+END
+
+
+# the http dependencies and include paths
+
+if [ $HTTP = YES ]; then
+
+    njt_all_srcs="$njt_all_srcs $HTTP_SRCS"
+
+    njt_deps=`echo $HTTP_DEPS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_incs=`echo $HTTP_INCS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont$njt_include_opt\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+HTTP_DEPS = $njt_deps
+
+
+HTTP_INCS = $njt_include_opt$njt_incs
+
+END
+
+fi
+
+
+# the mail dependencies and include paths
+
+if [ $MAIL != NO ]; then
+
+    if [ $MAIL = YES ]; then
+        njt_all_srcs="$njt_all_srcs $MAIL_SRCS"
+    fi
+
+    njt_deps=`echo $MAIL_DEPS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_incs=`echo $MAIL_INCS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont$njt_include_opt\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+MAIL_DEPS = $njt_deps
+
+
+MAIL_INCS = $njt_include_opt$njt_incs
+
+END
+
+fi
+
+
+# the stream dependencies and include paths
+
+if [ $STREAM != NO ]; then
+
+    if [ $STREAM = YES ]; then
+        njt_all_srcs="$njt_all_srcs $STREAM_SRCS"
+    fi
+
+    njt_deps=`echo $STREAM_DEPS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_incs=`echo $STREAM_INCS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont$njt_include_opt\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+STREAM_DEPS = $njt_deps
+
+
+STREAM_INCS = $njt_include_opt$njt_incs
+
+END
+
+fi
+
+
+njt_all_srcs="$njt_all_srcs $MISC_SRCS"
+
+
+if test -n "$NJT_ADDON_SRCS$DYNAMIC_MODULES"; then
+
+cat << END                                                >> $NJT_MAKEFILE
+
+ADDON_DEPS = \$(CORE_DEPS) $NJT_ADDON_DEPS
+
+END
+
+fi
+
+
+# njet
+
+njt_all_srcs=`echo $njt_all_srcs | sed -e "s/\//$njt_regex_dirsep/g"`
+
+for njt_src in $NJT_ADDON_SRCS
+do
+    njt_obj="addon/`basename \`dirname $njt_src\``"
+
+    test -d $NJT_OBJS/$njt_obj || mkdir -p $NJT_OBJS/$njt_obj
+
+    njt_obj=`echo $njt_obj/\`basename $njt_src\` \
+        | sed -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_all_srcs="$njt_all_srcs $njt_obj"
+done
+
+njt_all_objs=`echo $njt_all_srcs \
+    | sed -e "s#\([^ ]*\.\)cpp#$NJT_OBJS\/\1$njt_objext#g" \
+          -e "s#\([^ ]*\.\)cc#$NJT_OBJS\/\1$njt_objext#g" \
+          -e "s#\([^ ]*\.\)c#$NJT_OBJS\/\1$njt_objext#g" \
+          -e "s#\([^ ]*\.\)S#$NJT_OBJS\/\1$njt_objext#g"`
+
+njt_modules_c=`echo $NJT_MODULES_C | sed -e "s/\//$njt_regex_dirsep/g"`
+
+njt_modules_obj=`echo $njt_modules_c | sed -e "s/\(.*\.\)c/\1$njt_objext/"`
+
+
+if test -n "$NJT_RES"; then
+   njt_res=$NJT_RES
+else
+   njt_res="$NJT_RC $NJT_ICONS"
+   njt_rcc=`echo $NJT_RCC | sed -e "s/\//$njt_regex_dirsep/g"`
+fi
+
+njt_deps=`echo $njt_all_objs $njt_modules_obj $njt_res $LINK_DEPS \
+    | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+          -e "s/\//$njt_regex_dirsep/g"`
+
+njt_objs=`echo $njt_all_objs $njt_modules_obj \
+    | sed -e "s/  *\([^ ][^ ]*\)/$njt_long_regex_cont\1/g" \
+          -e "s/\//$njt_regex_dirsep/g"`
+
+njt_libs=
+if test -n "$NJT_LD_OPT$CORE_LIBS"; then
+    njt_libs=`echo $NJT_LD_OPT $CORE_LIBS \
+        | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`
+fi
+
+njt_link=${CORE_LINK:+`echo $CORE_LINK \
+    | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`}
+
+njt_main_link=${MAIN_LINK:+`echo $MAIN_LINK \
+    | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`}
+
+
+cat << END                                                    >> $NJT_MAKEFILE
+
+build:	binary modules manpage
+
+binary:	$NJT_OBJS${njt_dirsep}njet$njt_binext
+
+$NJT_OBJS${njt_dirsep}njet$njt_binext:	$njt_deps$njt_spacer
+	\$(LINK) $njt_long_start$njt_binout$NJT_OBJS${njt_dirsep}njet$njt_binext$njt_long_cont$njt_objs$njt_libs$njt_link$njt_main_link
+	$njt_rcc
+$njt_long_end
+
+modules:
+END
+
+
+# njt_modules.c
+
+if test -n "$NJT_PCH"; then
+    njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+else
+    njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) \$(CORE_INCS)"
+fi
+
+cat << END                                                    >> $NJT_MAKEFILE
+
+$njt_modules_obj:	\$(CORE_DEPS)$njt_cont$njt_modules_c
+	$njt_cc$njt_tab$njt_objout$njt_modules_obj$njt_tab$njt_modules_c$NJT_AUX
+
+END
+
+
+# the core sources
+
+for njt_src in $CORE_SRCS
+do
+    njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+    njt_obj=`echo $njt_src \
+        | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+              -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+              -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+              -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+
+done
+
+
+# the http sources
+
+if [ $HTTP = YES ]; then
+
+    if test -n "$NJT_PCH"; then
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+    else
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) \$(CORE_INCS) \$(HTTP_INCS)"
+        njt_perl_cc="\$(CC) $njt_compile_opt \$(NJT_PERL_CFLAGS)"
+        njt_perl_cc="$njt_perl_cc \$(CORE_INCS) \$(HTTP_INCS)"
+    fi
+
+    for njt_source in $HTTP_SRCS
+    do
+        njt_src=`echo $njt_source | sed -e "s/\//$njt_regex_dirsep/g"`
+        njt_obj=`echo $njt_src \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        if [ $njt_source = src/http/modules/perl/njt_http_perl_module.c ]; then
+
+            cat << END                                        >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS) \$(HTTP_DEPS)$njt_cont$njt_src
+	$njt_perl_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+        else
+
+            cat << END                                        >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS) \$(HTTP_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+
+        fi
+    done
+
+fi
+
+
+# the mail sources
+
+if [ $MAIL = YES ]; then
+
+    if test -n "$NJT_PCH"; then
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+    else
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) \$(CORE_INCS) \$(MAIL_INCS)"
+    fi
+
+    for njt_src in $MAIL_SRCS
+    do
+        njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+        njt_obj=`echo $njt_src \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        cat << END                                            >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS) \$(MAIL_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+    done
+
+fi
+
+
+# the stream sources
+
+if [ $STREAM = YES ]; then
+
+    if test -n "$NJT_PCH"; then
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+    else
+        njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) \$(CORE_INCS) \$(STREAM_INCS)"
+    fi
+
+    for njt_src in $STREAM_SRCS
+    do
+        njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+        njt_obj=`echo $njt_src \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        cat << END                                            >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS) \$(STREAM_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+    done
+
+fi
+
+
+# the misc sources
+
+if test -n "$MISC_SRCS"; then
+
+    njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+
+    for njt_src in $MISC_SRCS
+    do
+        njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+        njt_obj=`echo $njt_src \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        cat << END                                            >> $NJT_MAKEFILE
+
+$njt_obj:	\$(CORE_DEPS) $njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+    done
+
+fi
+
+
+# the addons sources
+
+if test -n "$NJT_ADDON_SRCS"; then
+
+    njt_cc="\$(CC) $njt_compile_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+
+    for njt_src in $NJT_ADDON_SRCS
+    do
+        njt_obj="addon/`basename \`dirname $njt_src\``"
+
+        njt_obj=`echo $njt_obj/\`basename $njt_src\` \
+            | sed -e "s/\//$njt_regex_dirsep/g"`
+
+        njt_obj=`echo $njt_obj \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+
+        cat << END                                            >> $NJT_MAKEFILE
+
+$njt_obj:	\$(ADDON_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+    done
+
+fi
+
+
+# the addons config.make
+
+if test -n "$NJT_ADDONS$DYNAMIC_ADDONS"; then
+
+    for njt_addon_dir in $NJT_ADDONS $DYNAMIC_ADDONS
+    do
+        if test -f $njt_addon_dir/config.make; then
+            . $njt_addon_dir/config.make
+        fi
+    done
+fi
+
+
+# Win32 resource file
+
+if test -n "$NJT_RES"; then
+
+    njt_res=`echo "$NJT_RES:	$NJT_RC $NJT_ICONS" \
+                 | sed -e "s/\//$njt_regex_dirsep/g"`
+    njt_rcc=`echo $NJT_RCC | sed -e "s/\//$njt_regex_dirsep/g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+$njt_res
+	$njt_rcc
+
+END
+
+fi
+
+
+# the precompiled headers
+
+if test -n "$NJT_PCH"; then
+    echo "#include <njt_config.h>" > $NJT_OBJS/njt_pch.c
+
+    njt_pch="src/core/njt_config.h $OS_CONFIG $NJT_OBJS/njt_auto_config.h"
+    njt_pch=`echo "$NJT_PCH:	$njt_pch" | sed -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_src="\$(CC) \$(CFLAGS) $NJT_BUILD_PCH $njt_compile_opt \$(ALL_INCS)"
+    njt_src="$njt_src $njt_objout$NJT_OBJS/njt_pch.obj $NJT_OBJS/njt_pch.c"
+    njt_src=`echo $njt_src | sed -e "s/\//$njt_regex_dirsep/g"`
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+$njt_pch
+	$njt_src
+
+END
+
+fi
+
+
+# dynamic modules
+
+if test -n "$NJT_PCH"; then
+    njt_cc="\$(CC) $njt_compile_opt $njt_pic_opt \$(CFLAGS) $njt_use_pch \$(ALL_INCS)"
+else
+    njt_cc="\$(CC) $njt_compile_opt $njt_pic_opt \$(CFLAGS) \$(ALL_INCS)"
+    njt_perl_cc="\$(CC) $njt_compile_opt $njt_pic_opt \$(NJT_PERL_CFLAGS)"
+    njt_perl_cc="$njt_perl_cc \$(ALL_INCS)"
+fi
+
+for njt_module in $DYNAMIC_MODULES
+do
+    eval njt_module_srcs="\$${njt_module}_SRCS"
+    eval njt_module_shrd="\$${njt_module}_SHRD"
+    eval eval njt_module_libs="\\\"\$${njt_module}_LIBS\\\""
+
+    eval njt_module_modules="\$${njt_module}_MODULES"
+    eval njt_module_order="\$${njt_module}_ORDER"
+
+    njt_modules_c=$NJT_OBJS/${njt_module}_modules.c
+
+    cat << END                                    > $njt_modules_c
+
+#include <njt_config.h>
+#include <njt_core.h>
+
+END
+
+    for mod in $njt_module_modules
+    do
+        echo "extern njt_module_t  $mod;"         >> $njt_modules_c
+    done
+
+    echo                                          >> $njt_modules_c
+    echo 'njt_module_t *njt_modules[] = {'        >> $njt_modules_c
+
+    for mod in $njt_module_modules
+    do
+        echo "    &$mod,"                         >> $njt_modules_c
+    done
+
+    cat << END                                    >> $njt_modules_c
+    NULL
+};
+
+END
+
+    echo 'char *njt_module_names[] = {'           >> $njt_modules_c
+
+    for mod in $njt_module_modules
+    do
+        echo "    \"$mod\","                      >> $njt_modules_c
+    done
+
+    cat << END                                    >> $njt_modules_c
+    NULL
+};
+
+END
+
+    echo 'char *njt_module_order[] = {'           >> $njt_modules_c
+
+    for mod in $njt_module_order
+    do
+        echo "    \"$mod\","                      >> $njt_modules_c
+    done
+
+    cat << END                                    >> $njt_modules_c
+    NULL
+};
+
+END
+
+    njt_modules_c=`echo $njt_modules_c | sed -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_modules_obj=`echo $njt_modules_c \
+        | sed -e "s/\(.*\.\)c/\1$njt_objext/"`
+
+    njt_module_objs=
+    for njt_src in $njt_module_srcs $njt_module_shrd
+    do
+        case "$njt_src" in
+            src/*)
+                njt_obj=$njt_src
+                ;;
+            *)
+                njt_obj="addon/`basename \`dirname $njt_src\``"
+                mkdir -p $NJT_OBJS/$njt_obj
+                njt_obj="$njt_obj/`basename $njt_src`"
+                ;;
+        esac
+
+        njt_module_objs="$njt_module_objs $njt_obj"
+    done
+
+    njt_module_objs=`echo $njt_module_objs \
+        | sed -e "s#\([^ ]*\.\)cpp#$NJT_OBJS\/\1$njt_objext#g" \
+              -e "s#\([^ ]*\.\)cc#$NJT_OBJS\/\1$njt_objext#g" \
+              -e "s#\([^ ]*\.\)c#$NJT_OBJS\/\1$njt_objext#g" \
+              -e "s#\([^ ]*\.\)S#$NJT_OBJS\/\1$njt_objext#g"`
+
+    njt_deps=`echo $njt_module_objs $njt_modules_obj $LINK_DEPS \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_regex_cont\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_objs=`echo $njt_module_objs $njt_modules_obj \
+        | sed -e "s/  *\([^ ][^ ]*\)/$njt_long_regex_cont\1/g" \
+              -e "s/\//$njt_regex_dirsep/g"`
+
+    njt_obj=$NJT_OBJS$njt_dirsep$njt_module$njt_modext
+
+    if [ "$NJT_PLATFORM" = win32 ]; then
+        njt_module_libs="$CORE_LIBS $njt_module_libs"
+    fi
+
+    njt_libs=
+    if test -n "$NJT_LD_OPT$njt_module_libs"; then
+        njt_libs=`echo $NJT_LD_OPT $njt_module_libs \
+            | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`
+    fi
+
+    njt_link=${CORE_LINK:+`echo $CORE_LINK \
+        | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`}
+
+    njt_module_link=${MODULE_LINK:+`echo $MODULE_LINK \
+        | sed -e "s/\//$njt_regex_dirsep/g" -e "s/^/$njt_long_regex_cont/"`}
+
+
+    cat << END                                            >> $NJT_MAKEFILE
+
+modules:	$njt_obj
+
+$njt_obj:	$njt_deps$njt_spacer
+	\$(LINK) $njt_long_start$njt_binout$njt_obj$njt_long_cont$njt_objs$njt_libs$njt_link$njt_module_link
+$njt_long_end
+
+$njt_modules_obj:	\$(CORE_DEPS)$njt_cont$njt_modules_c
+	$njt_cc$njt_tab$njt_objout$njt_modules_obj$njt_tab$njt_modules_c$NJT_AUX
+
+END
+
+    for njt_source in $njt_module_srcs
+    do
+        case "$njt_source" in
+            src/*)
+                njt_obj=`echo $njt_source | sed -e "s/\//$njt_regex_dirsep/g"`
+                ;;
+            *)
+                njt_obj="addon/`basename \`dirname $njt_source\``"
+                njt_obj=`echo $njt_obj/\`basename $njt_source\` \
+                    | sed -e "s/\//$njt_regex_dirsep/g"`
+                ;;
+        esac
+
+        njt_obj=`echo $njt_obj \
+            | sed -e "s#^\(.*\.\)cpp\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)cc\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)c\\$#$njt_objs_dir\1$njt_objext#g" \
+                  -e "s#^\(.*\.\)S\\$#$njt_objs_dir\1$njt_objext#g"`
+
+        njt_src=`echo $njt_source | sed -e "s/\//$njt_regex_dirsep/g"`
+
+        if [ $njt_source = src/http/modules/perl/njt_http_perl_module.c ]; then
+
+            cat << END                                        >> $NJT_MAKEFILE
+
+$njt_obj:	\$(ADDON_DEPS)$njt_cont$njt_src
+	$njt_perl_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+        else
+
+            cat << END                                        >> $NJT_MAKEFILE
+
+$njt_obj:	\$(ADDON_DEPS)$njt_cont$njt_src
+	$njt_cc$njt_tab$njt_objout$njt_obj$njt_tab$njt_src$NJT_AUX
+
+END
+
+        fi
+    done
+done

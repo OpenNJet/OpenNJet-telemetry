@@ -1,0 +1,664 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+help=no
+
+NJT_PREFIX=
+NJT_SBIN_PATH=
+NJT_MODULES_PATH=
+NJT_CONF_PREFIX=
+NJT_CONF_PATH=
+NJT_ERROR_LOG_PATH=
+NJT_PID_PATH=
+NJT_LOCK_PATH=
+NJT_USER=
+NJT_GROUP=
+NJT_BUILD=
+
+CC=${CC:-cc}
+CPP=
+NJT_OBJS=objs
+
+NJT_DEBUG=NO
+NJT_CC_OPT=
+NJT_LD_OPT=
+CPU=NO
+
+NJT_RPATH=NO
+
+NJT_TEST_BUILD_DEVPOLL=NO
+NJT_TEST_BUILD_EVENTPORT=NO
+NJT_TEST_BUILD_EPOLL=NO
+NJT_TEST_BUILD_SOLARIS_SENDFILEV=NO
+
+NJT_PLATFORM=
+NJT_WINE=
+
+EVENT_FOUND=NO
+
+EVENT_SELECT=NO
+EVENT_POLL=NO
+
+USE_THREADS=NO
+
+NJT_FILE_AIO=NO
+
+QUIC_BPF=NO
+
+DYNAMIC_POOL=YES
+
+HTTP=YES
+
+NJT_HTTP_LOG_PATH=
+NJT_HTTP_CLIENT_TEMP_PATH=
+NJT_HTTP_PROXY_TEMP_PATH=
+NJT_HTTP_FASTCGI_TEMP_PATH=
+NJT_HTTP_UWSGI_TEMP_PATH=
+NJT_HTTP_SCGI_TEMP_PATH=
+
+HTTP_CACHE=YES
+HTTP_CHARSET=YES
+HTTP_GZIP=YES
+HTTP_SSL=NO
+HTTP_V2=NO
+HTTP_V3=NO
+HTTP_SSI=YES
+HTTP_REALIP=NO
+HTTP_XSLT=NO
+HTTP_IMAGE_FILTER=NO
+HTTP_SUB=NO
+HTTP_ADDITION=NO
+HTTP_DAV=NO
+HTTP_ACCESS=YES
+HTTP_AUTH_BASIC=YES
+HTTP_AUTH_REQUEST=NO
+HTTP_MIRROR=YES
+HTTP_USERID=YES
+HTTP_SLICE=NO
+HTTP_AUTOINDEX=YES
+HTTP_RANDOM_INDEX=NO
+HTTP_STATUS=NO
+HTTP_GEO=YES
+HTTP_GEOIP=NO
+HTTP_MAP=YES
+HTTP_SPLIT_CLIENTS=YES
+HTTP_REFERER=YES
+HTTP_REWRITE=YES
+HTTP_PROXY=YES
+HTTP_FASTCGI=YES
+HTTP_UWSGI=YES
+HTTP_SCGI=YES
+HTTP_GRPC=YES
+HTTP_PERL=NO
+HTTP_MEMCACHED=YES
+HTTP_LIMIT_CONN=YES
+HTTP_LIMIT_REQ=YES
+HTTP_EMPTY_GIF=YES
+HTTP_BROWSER=YES
+HTTP_SECURE_LINK=NO
+HTTP_DEGRADATION=NO
+HTTP_FLV=NO
+HTTP_MP4=NO
+HTTP_GUNZIP=NO
+HTTP_GZIP_STATIC=NO
+HTTP_UPSTREAM_HASH=YES
+HTTP_UPSTREAM_IP_HASH=YES
+HTTP_UPSTREAM_LEAST_CONN=YES
+HTTP_UPSTREAM_RANDOM=YES
+HTTP_UPSTREAM_KEEPALIVE=YES
+HTTP_UPSTREAM_ZONE=YES
+
+# STUB
+HTTP_STUB_STATUS=NO
+
+MAIL=NO
+MAIL_SSL=NO
+MAIL_POP3=YES
+MAIL_IMAP=YES
+MAIL_SMTP=YES
+
+STREAM=NO
+STREAM_SSL=NO
+STREAM_REALIP=NO
+STREAM_LIMIT_CONN=YES
+STREAM_ACCESS=YES
+STREAM_GEO=YES
+STREAM_GEOIP=NO
+STREAM_MAP=YES
+STREAM_SPLIT_CLIENTS=YES
+STREAM_RETURN=YES
+STREAM_SET=YES
+STREAM_UPSTREAM_HASH=YES
+STREAM_UPSTREAM_LEAST_CONN=YES
+STREAM_UPSTREAM_RANDOM=YES
+STREAM_UPSTREAM_ZONE=YES
+STREAM_SSL_PREREAD=NO
+
+DYNAMIC_MODULES=
+DYNAMIC_MODULES_SRCS=
+
+NJT_ADDONS=
+NJT_ADDON_SRCS=
+NJT_ADDON_DEPS=
+DYNAMIC_ADDONS=
+
+USE_NTLS=NO
+
+NJT_COMPAT=NO
+
+USE_PCRE=NO
+PCRE=NONE
+PCRE_OPT=
+PCRE_CONF_OPT=
+PCRE_JIT=NO
+PCRE2=YES
+
+USE_OPENSSL=NO
+USE_OPENSSL_QUIC=NO
+OPENSSL=NONE
+
+USE_ZLIB=NO
+ZLIB=NONE
+ZLIB_OPT=
+ZLIB_ASM=NO
+
+USE_PERL=NO
+NJT_PERL=perl
+
+USE_LIBXSLT=NO
+USE_LIBGD=NO
+USE_GEOIP=NO
+
+NJT_GOOGLE_PERFTOOLS=NO
+NJT_CPP_TEST=NO
+
+SO_COOKIE_FOUND=NO
+
+NJT_LIBATOMIC=NO
+
+NJT_CPU_CACHE_LINE=
+
+NJT_POST_CONF_MSG=
+
+opt=
+
+for option
+do
+    opt="$opt `echo $option | sed -e \"s/\(--[^=]*=\)\(.* .*\)/\1'\2'/\"`"
+
+    case "$option" in
+        -*=*) value=`echo "$option" | sed -e 's/[-_a-zA-Z0-9]*=//'` ;;
+           *) value="" ;;
+    esac
+
+    case "$option" in
+        --help)                          help=yes                   ;;
+
+        --prefix=)                       NJT_PREFIX="!"             ;;
+        --prefix=*)                      NJT_PREFIX="$value"        ;;
+        --sbin-path=*)                   NJT_SBIN_PATH="$value"     ;;
+        --modules-path=*)                NJT_MODULES_PATH="$value"  ;;
+        --conf-path=*)                   NJT_CONF_PATH="$value"     ;;
+        --error-log-path=*)              NJT_ERROR_LOG_PATH="$value";;
+        --pid-path=*)                    NJT_PID_PATH="$value"      ;;
+        --lock-path=*)                   NJT_LOCK_PATH="$value"     ;;
+        --user=*)                        NJT_USER="$value"          ;;
+        --group=*)                       NJT_GROUP="$value"         ;;
+
+        --crossbuild=*)                  NJT_PLATFORM="$value"      ;;
+
+        --build=*)                       NJT_BUILD="$value"         ;;
+        --builddir=*)                    NJT_OBJS="$value"          ;;
+
+        --with-select_module)            EVENT_SELECT=YES           ;;
+        --without-select_module)         EVENT_SELECT=NONE          ;;
+        --with-poll_module)              EVENT_POLL=YES             ;;
+        --without-poll_module)           EVENT_POLL=NONE            ;;
+
+        --with-threads)                  USE_THREADS=YES            ;;
+
+        --with-file-aio)                 NJT_FILE_AIO=YES           ;;
+
+        --without-quic_bpf_module)       QUIC_BPF=NONE              ;;
+
+        --with-ipv6)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-ipv6\" option is deprecated"
+        ;;
+        --without-dynamic-pool)          DYNAMIC_POOL=NO            ;;
+
+        --without-http)                  HTTP=NO                    ;;
+        --without-http-cache)            HTTP_CACHE=NO              ;;
+
+        --http-log-path=*)               NJT_HTTP_LOG_PATH="$value" ;;
+        --http-client-body-temp-path=*)  NJT_HTTP_CLIENT_TEMP_PATH="$value" ;;
+        --http-proxy-temp-path=*)        NJT_HTTP_PROXY_TEMP_PATH="$value" ;;
+        --http-fastcgi-temp-path=*)      NJT_HTTP_FASTCGI_TEMP_PATH="$value" ;;
+        --http-uwsgi-temp-path=*)        NJT_HTTP_UWSGI_TEMP_PATH="$value" ;;
+        --http-scgi-temp-path=*)         NJT_HTTP_SCGI_TEMP_PATH="$value" ;;
+
+        --with-http_ssl_module)          HTTP_SSL=YES               ;;
+        --with-http_v2_module)           HTTP_V2=YES                ;;
+        --with-http_v3_module)           HTTP_V3=YES                ;;
+        --with-http_realip_module)       HTTP_REALIP=YES            ;;
+        --with-http_addition_module)     HTTP_ADDITION=YES          ;;
+        --with-http_xslt_module)         HTTP_XSLT=YES              ;;
+        --with-http_xslt_module=dynamic) HTTP_XSLT=DYNAMIC          ;;
+        --with-http_image_filter_module) HTTP_IMAGE_FILTER=YES      ;;
+        --with-http_image_filter_module=dynamic)
+                                         HTTP_IMAGE_FILTER=DYNAMIC  ;;
+        --with-http_geoip_module)        HTTP_GEOIP=YES             ;;
+        --with-http_geoip_module=dynamic)
+                                         HTTP_GEOIP=DYNAMIC         ;;
+        --with-http_sub_module)          HTTP_SUB=YES               ;;
+        --with-http_dav_module)          HTTP_DAV=YES               ;;
+        --with-http_flv_module)          HTTP_FLV=YES               ;;
+        --with-http_mp4_module)          HTTP_MP4=YES               ;;
+        --with-http_gunzip_module)       HTTP_GUNZIP=YES            ;;
+        --with-http_gzip_static_module)  HTTP_GZIP_STATIC=YES       ;;
+        --with-http_auth_request_module) HTTP_AUTH_REQUEST=YES      ;;
+        --with-http_random_index_module) HTTP_RANDOM_INDEX=YES      ;;
+        --with-http_secure_link_module)  HTTP_SECURE_LINK=YES       ;;
+        --with-http_degradation_module)  HTTP_DEGRADATION=YES       ;;
+        --with-http_slice_module)        HTTP_SLICE=YES             ;;
+
+        --without-http_charset_module)   HTTP_CHARSET=NO            ;;
+        --without-http_gzip_module)      HTTP_GZIP=NO               ;;
+        --without-http_ssi_module)       HTTP_SSI=NO                ;;
+        --without-http_userid_module)    HTTP_USERID=NO             ;;
+        --without-http_access_module)    HTTP_ACCESS=NO             ;;
+        --without-http_auth_basic_module) HTTP_AUTH_BASIC=NO        ;;
+        --without-http_mirror_module)    HTTP_MIRROR=NO             ;;
+        --without-http_autoindex_module) HTTP_AUTOINDEX=NO          ;;
+        --without-http_status_module)    HTTP_STATUS=NO             ;;
+        --without-http_geo_module)       HTTP_GEO=NO                ;;
+        --without-http_map_module)       HTTP_MAP=NO                ;;
+        --without-http_split_clients_module) HTTP_SPLIT_CLIENTS=NO  ;;
+        --without-http_referer_module)   HTTP_REFERER=NO            ;;
+        --without-http_rewrite_module)   HTTP_REWRITE=NO            ;;
+        --without-http_proxy_module)     HTTP_PROXY=NO              ;;
+        --without-http_fastcgi_module)   HTTP_FASTCGI=NO            ;;
+        --without-http_uwsgi_module)     HTTP_UWSGI=NO              ;;
+        --without-http_scgi_module)      HTTP_SCGI=NO               ;;
+        --without-http_grpc_module)      HTTP_GRPC=NO               ;;
+        --without-http_memcached_module) HTTP_MEMCACHED=NO          ;;
+        --without-http_limit_conn_module) HTTP_LIMIT_CONN=NO        ;;
+        --without-http_limit_req_module) HTTP_LIMIT_REQ=NO         ;;
+        --without-http_empty_gif_module) HTTP_EMPTY_GIF=NO          ;;
+        --without-http_browser_module)   HTTP_BROWSER=NO            ;;
+        --without-http_upstream_hash_module) HTTP_UPSTREAM_HASH=NO  ;;
+        --without-http_upstream_ip_hash_module) HTTP_UPSTREAM_IP_HASH=NO ;;
+        --without-http_upstream_least_conn_module)
+                                         HTTP_UPSTREAM_LEAST_CONN=NO ;;
+        --without-http_upstream_random_module)
+                                         HTTP_UPSTREAM_RANDOM=NO    ;;
+        --without-http_upstream_keepalive_module) HTTP_UPSTREAM_KEEPALIVE=NO ;;
+        --without-http_upstream_zone_module) HTTP_UPSTREAM_ZONE=NO  ;;
+
+        --with-http_perl_module)         HTTP_PERL=YES              ;;
+        --with-http_perl_module=dynamic) HTTP_PERL=DYNAMIC          ;;
+        --with-perl_modules_path=*)      NJT_PERL_MODULES="$value"  ;;
+        --with-perl=*)                   NJT_PERL="$value"          ;;
+
+        # STUB
+        --with-http_stub_status_module)  HTTP_STUB_STATUS=YES       ;;
+
+        --with-mail)                     MAIL=YES                   ;;
+        --with-mail=dynamic)             MAIL=DYNAMIC               ;;
+        --with-mail_ssl_module)          MAIL_SSL=YES               ;;
+        # STUB
+        --with-imap)
+            MAIL=YES
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-imap\" option is deprecated, \
+use the \"--with-mail\" option instead"
+        ;;
+        --with-imap_ssl_module)
+            MAIL_SSL=YES
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-imap_ssl_module\" option is deprecated, \
+use the \"--with-mail_ssl_module\" option instead"
+        ;;
+        --without-mail_pop3_module)      MAIL_POP3=NO               ;;
+        --without-mail_imap_module)      MAIL_IMAP=NO               ;;
+        --without-mail_smtp_module)      MAIL_SMTP=NO               ;;
+
+        --with-stream)                   STREAM=YES                 ;;
+        --with-stream=dynamic)           STREAM=DYNAMIC             ;;
+        --with-stream_ssl_module)        STREAM_SSL=YES             ;;
+        --with-stream_realip_module)     STREAM_REALIP=YES          ;;
+        --with-stream_geoip_module)      STREAM_GEOIP=YES           ;;
+        --with-stream_geoip_module=dynamic)
+                                         STREAM_GEOIP=DYNAMIC       ;;
+        --with-stream_ssl_preread_module)
+                                         STREAM_SSL_PREREAD=YES     ;;
+        --without-stream_limit_conn_module)
+                                         STREAM_LIMIT_CONN=NO       ;;
+        --without-stream_access_module)  STREAM_ACCESS=NO           ;;
+        --without-stream_geo_module)     STREAM_GEO=NO              ;;
+        --without-stream_map_module)     STREAM_MAP=NO              ;;
+        --without-stream_split_clients_module)
+                                         STREAM_SPLIT_CLIENTS=NO    ;;
+        --without-stream_return_module)  STREAM_RETURN=NO           ;;
+        --without-stream_set_module)     STREAM_SET=NO              ;;
+        --without-stream_upstream_hash_module)
+                                         STREAM_UPSTREAM_HASH=NO    ;;
+        --without-stream_upstream_least_conn_module)
+                                         STREAM_UPSTREAM_LEAST_CONN=NO ;;
+        --without-stream_upstream_random_module)
+                                         STREAM_UPSTREAM_RANDOM=NO  ;;
+        --without-stream_upstream_zone_module)
+                                         STREAM_UPSTREAM_ZONE=NO    ;;
+
+        --with-google_perftools_module)  NJT_GOOGLE_PERFTOOLS=YES   ;;
+        --with-cpp_test_module)          NJT_CPP_TEST=YES           ;;
+
+        --add-module=*)                  NJT_ADDONS="$NJT_ADDONS $value" ;;
+        --add-dynamic-module=*)          DYNAMIC_ADDONS="$DYNAMIC_ADDONS $value" ;;
+
+        --with-compat)                   NJT_COMPAT=YES             ;;
+
+        --with-ntls)                     USE_NTLS=YES               ;;
+
+        --with-cc=*)                     CC="$value"                ;;
+        --with-cpp=*)                    CPP="$value"               ;;
+        --with-cc-opt=*)                 NJT_CC_OPT="$value"        ;;
+        --with-ld-opt=*)                 NJT_LD_OPT="$value"        ;;
+        --with-cpu-opt=*)                CPU="$value"               ;;
+        --with-debug)                    NJT_DEBUG=YES              ;;
+
+        --without-pcre)                  USE_PCRE=DISABLED          ;;
+        --with-pcre)                     USE_PCRE=YES               ;;
+        --with-pcre=*)                   PCRE="$value"              ;;
+        --with-pcre-opt=*)               PCRE_OPT="$value"          ;;
+        
+        # openreaty patch and  line near 605 
+        --with-pcre-conf-opt=*)          PCRE_CONF_OPT="$value"     ;;
+
+        --with-pcre-jit)                 PCRE_JIT=YES               ;;
+        --without-pcre2)                 PCRE2=DISABLED             ;;
+
+        --with-openssl=*)                OPENSSL="$value"           ;;
+        --with-openssl-opt=*)            OPENSSL_OPT="$value"       ;;
+
+        --with-md5=*)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-md5\" option is deprecated"
+        ;;
+        --with-md5-opt=*)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-md5-opt\" option is deprecated"
+        ;;
+        --with-md5-asm)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-md5-asm\" option is deprecated"
+        ;;
+
+        --with-sha1=*)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-sha1\" option is deprecated"
+        ;;
+        --with-sha1-opt=*)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-sha1-opt\" option is deprecated"
+        ;;
+        --with-sha1-asm)
+            NJT_POST_CONF_MSG="$NJT_POST_CONF_MSG
+$0: warning: the \"--with-sha1-asm\" option is deprecated"
+        ;;
+
+        --with-zlib=*)                   ZLIB="$value"              ;;
+        --with-zlib-opt=*)               ZLIB_OPT="$value"          ;;
+        --with-zlib-asm=*)               ZLIB_ASM="$value"          ;;
+
+        --with-libatomic)                NJT_LIBATOMIC=YES          ;;
+        --with-libatomic=*)              NJT_LIBATOMIC="$value"     ;;
+
+        --test-build-devpoll)            NJT_TEST_BUILD_DEVPOLL=YES ;;
+        --test-build-eventport)          NJT_TEST_BUILD_EVENTPORT=YES ;;
+        --test-build-epoll)              NJT_TEST_BUILD_EPOLL=YES   ;;
+        --test-build-solaris-sendfilev)  NJT_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
+
+        *)
+            echo "$0: error: invalid option \"$option\""
+            exit 1
+        ;;
+    esac
+done
+
+
+NJT_CONFIGURE="$opt"
+
+
+if [ $help = yes ]; then
+
+cat << END
+
+  --help                             print this message
+
+  --prefix=PATH                      set installation prefix
+  --sbin-path=PATH                   set njet binary pathname
+  --modules-path=PATH                set modules path
+  --conf-path=PATH                   set njet.conf pathname
+  --error-log-path=PATH              set error log pathname
+  --pid-path=PATH                    set njet.pid pathname
+  --lock-path=PATH                   set njet.lock pathname
+
+  --user=USER                        set non-privileged user for
+                                     worker processes
+  --group=GROUP                      set non-privileged group for
+                                     worker processes
+
+  --build=NAME                       set build name
+  --builddir=DIR                     set build directory
+
+  --with-select_module               enable select module
+  --without-select_module            disable select module
+  --with-poll_module                 enable poll module
+  --without-poll_module              disable poll module
+
+  --with-threads                     enable thread pool support
+
+  --with-file-aio                    enable file AIO support
+
+  --without-quic_bpf_module          disable njt_quic_bpf_module
+
+  --without-dynamic-pool             disable njet dynamic pool usage
+
+  --with-http_ssl_module             enable njt_http_ssl_module
+  --with-http_v2_module              enable njt_http_v2_module
+  --with-http_v3_module              enable njt_http_v3_module
+  --with-http_realip_module          enable njt_http_realip_module
+  --with-http_addition_module        enable njt_http_addition_module
+  --with-http_xslt_module            enable njt_http_xslt_module
+  --with-http_xslt_module=dynamic    enable dynamic njt_http_xslt_module
+  --with-http_image_filter_module    enable njt_http_image_filter_module
+  --with-http_image_filter_module=dynamic
+                                     enable dynamic njt_http_image_filter_module
+  --with-http_geoip_module           enable njt_http_geoip_module
+  --with-http_geoip_module=dynamic   enable dynamic njt_http_geoip_module
+  --with-http_sub_module             enable njt_http_sub_module
+  --with-http_dav_module             enable njt_http_dav_module
+  --with-http_flv_module             enable njt_http_flv_module
+  --with-http_mp4_module             enable njt_http_mp4_module
+  --with-http_gunzip_module          enable njt_http_gunzip_module
+  --with-http_gzip_static_module     enable njt_http_gzip_static_module
+  --with-http_auth_request_module    enable njt_http_auth_request_module
+  --with-http_random_index_module    enable njt_http_random_index_module
+  --with-http_secure_link_module     enable njt_http_secure_link_module
+  --with-http_degradation_module     enable njt_http_degradation_module
+  --with-http_slice_module           enable njt_http_slice_module
+  --with-http_stub_status_module     enable njt_http_stub_status_module
+
+  --without-http_charset_module      disable njt_http_charset_module
+  --without-http_gzip_module         disable njt_http_gzip_module
+  --without-http_ssi_module          disable njt_http_ssi_module
+  --without-http_userid_module       disable njt_http_userid_module
+  --without-http_access_module       disable njt_http_access_module
+  --without-http_auth_basic_module   disable njt_http_auth_basic_module
+  --without-http_mirror_module       disable njt_http_mirror_module
+  --without-http_autoindex_module    disable njt_http_autoindex_module
+  --without-http_geo_module          disable njt_http_geo_module
+  --without-http_map_module          disable njt_http_map_module
+  --without-http_split_clients_module disable njt_http_split_clients_module
+  --without-http_referer_module      disable njt_http_referer_module
+  --without-http_rewrite_module      disable njt_http_rewrite_module
+  --without-http_proxy_module        disable njt_http_proxy_module
+  --without-http_fastcgi_module      disable njt_http_fastcgi_module
+  --without-http_uwsgi_module        disable njt_http_uwsgi_module
+  --without-http_scgi_module         disable njt_http_scgi_module
+  --without-http_grpc_module         disable njt_http_grpc_module
+  --without-http_memcached_module    disable njt_http_memcached_module
+  --without-http_limit_conn_module   disable njt_http_limit_conn_module
+  --without-http_limit_req_module    disable njt_http_limit_req_module
+  --without-http_empty_gif_module    disable njt_http_empty_gif_module
+  --without-http_browser_module      disable njt_http_browser_module
+  --without-http_upstream_hash_module
+                                     disable njt_http_upstream_hash_module
+  --without-http_upstream_ip_hash_module
+                                     disable njt_http_upstream_ip_hash_module
+  --without-http_upstream_least_conn_module
+                                     disable njt_http_upstream_least_conn_module
+  --without-http_upstream_random_module
+                                     disable njt_http_upstream_random_module
+  --without-http_upstream_keepalive_module
+                                     disable njt_http_upstream_keepalive_module
+  --without-http_upstream_zone_module
+                                     disable njt_http_upstream_zone_module
+
+  --with-http_perl_module            enable njt_http_perl_module
+  --with-http_perl_module=dynamic    enable dynamic njt_http_perl_module
+  --with-perl_modules_path=PATH      set Perl modules path
+  --with-perl=PATH                   set perl binary pathname
+
+  --http-log-path=PATH               set http access log pathname
+  --http-client-body-temp-path=PATH  set path to store
+                                     http client request body temporary files
+  --http-proxy-temp-path=PATH        set path to store
+                                     http proxy temporary files
+  --http-fastcgi-temp-path=PATH      set path to store
+                                     http fastcgi temporary files
+  --http-uwsgi-temp-path=PATH        set path to store
+                                     http uwsgi temporary files
+  --http-scgi-temp-path=PATH         set path to store
+                                     http scgi temporary files
+
+  --without-http                     disable HTTP server
+  --without-http-cache               disable HTTP cache
+
+  --with-mail                        enable POP3/IMAP4/SMTP proxy module
+  --with-mail=dynamic                enable dynamic POP3/IMAP4/SMTP proxy module
+  --with-mail_ssl_module             enable njt_mail_ssl_module
+  --without-mail_pop3_module         disable njt_mail_pop3_module
+  --without-mail_imap_module         disable njt_mail_imap_module
+  --without-mail_smtp_module         disable njt_mail_smtp_module
+
+  --with-stream                      enable TCP/UDP proxy module
+  --with-stream=dynamic              enable dynamic TCP/UDP proxy module
+  --with-stream_ssl_module           enable njt_stream_ssl_module
+  --with-stream_realip_module        enable njt_stream_realip_module
+  --with-stream_geoip_module         enable njt_stream_geoip_module
+  --with-stream_geoip_module=dynamic enable dynamic njt_stream_geoip_module
+  --with-stream_ssl_preread_module   enable njt_stream_ssl_preread_module
+  --without-stream_limit_conn_module disable njt_stream_limit_conn_module
+  --without-stream_access_module     disable njt_stream_access_module
+  --without-stream_geo_module        disable njt_stream_geo_module
+  --without-stream_map_module        disable njt_stream_map_module
+  --without-stream_split_clients_module
+                                     disable njt_stream_split_clients_module
+  --without-stream_return_module     disable njt_stream_return_module
+  --without-stream_set_module        disable njt_stream_set_module
+  --without-stream_upstream_hash_module
+                                     disable njt_stream_upstream_hash_module
+  --without-stream_upstream_least_conn_module
+                                     disable njt_stream_upstream_least_conn_module
+  --without-stream_upstream_random_module
+                                     disable njt_stream_upstream_random_module
+  --without-stream_upstream_zone_module
+                                     disable njt_stream_upstream_zone_module
+
+  --with-google_perftools_module     enable njt_google_perftools_module
+  --with-cpp_test_module             enable njt_cpp_test_module
+
+  --add-module=PATH                  enable external module
+  --add-dynamic-module=PATH          enable dynamic external module
+
+  --with-compat                      dynamic modules compatibility
+
+  --with-ntls                        enable NTLS support
+
+  --with-cc=PATH                     set C compiler pathname
+  --with-cpp=PATH                    set C preprocessor pathname
+  --with-cc-opt=OPTIONS              set additional C compiler options
+  --with-ld-opt=OPTIONS              set additional linker options
+  --with-cpu-opt=CPU                 build for the specified CPU, valid values:
+                                     pentium, pentiumpro, pentium3, pentium4,
+                                     athlon, opteron, sparc32, sparc64, ppc64
+
+  --without-pcre                     disable PCRE library usage
+  --with-pcre                        force PCRE library usage
+  --with-pcre=DIR                    set path to PCRE library sources
+  --with-pcre-opt=OPTIONS            set additional build options for PCRE
+  --with-pcre-conf-opt=OPTIONS       set additional configure options for PCRE
+  --with-pcre-jit                    build PCRE with JIT compilation support
+  --without-pcre2                    do not use PCRE2 library
+
+  --with-zlib=DIR                    set path to zlib library sources
+  --with-zlib-opt=OPTIONS            set additional build options for zlib
+  --with-zlib-asm=CPU                use zlib assembler sources optimized
+                                     for the specified CPU, valid values:
+                                     pentium, pentiumpro
+
+  --with-libatomic                   force libatomic_ops library usage
+  --with-libatomic=DIR               set path to libatomic_ops library sources
+
+  --with-openssl=DIR                 set path to OpenSSL library sources
+  --with-openssl-opt=OPTIONS         set additional build options for OpenSSL
+
+  --with-debug                       enable debug logging
+
+END
+
+    exit 1
+fi
+
+
+if [ ".$NJT_PLATFORM" = ".win32" ]; then
+    NJT_WINE=$WINE
+fi
+
+
+NJT_SBIN_PATH=${NJT_SBIN_PATH:-sbin/njet}
+NJT_MODULES_PATH=${NJT_MODULES_PATH:-modules}
+NJT_CONF_PATH=${NJT_CONF_PATH:-conf/njet.conf}
+NJT_CONF_PREFIX=`dirname $NJT_CONF_PATH`
+NJT_PID_PATH=${NJT_PID_PATH:-logs/njet.pid}
+NJT_LOCK_PATH=${NJT_LOCK_PATH:-logs/njet.lock}
+
+if [ ".$NJT_ERROR_LOG_PATH" = ".stderr" ]; then
+    NJT_ERROR_LOG_PATH=
+else
+    NJT_ERROR_LOG_PATH=${NJT_ERROR_LOG_PATH:-logs/error.log}
+fi
+
+NJT_HTTP_LOG_PATH=${NJT_HTTP_LOG_PATH:-logs/access.log}
+NJT_HTTP_CLIENT_TEMP_PATH=${NJT_HTTP_CLIENT_TEMP_PATH:-client_body_temp}
+NJT_HTTP_PROXY_TEMP_PATH=${NJT_HTTP_PROXY_TEMP_PATH:-proxy_temp}
+NJT_HTTP_FASTCGI_TEMP_PATH=${NJT_HTTP_FASTCGI_TEMP_PATH:-fastcgi_temp}
+NJT_HTTP_UWSGI_TEMP_PATH=${NJT_HTTP_UWSGI_TEMP_PATH:-uwsgi_temp}
+NJT_HTTP_SCGI_TEMP_PATH=${NJT_HTTP_SCGI_TEMP_PATH:-scgi_temp}
+
+case ".$NJT_PERL_MODULES" in
+    ./*)
+    ;;
+
+    .)
+    ;;
+
+    *)
+        NJT_PERL_MODULES=$NJT_PREFIX/$NJT_PERL_MODULES
+    ;;
+esac

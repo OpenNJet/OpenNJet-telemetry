@@ -1,0 +1,253 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+if [ $USE_PERL != NO ]; then
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+install_perl_modules:
+	cd $NJT_OBJS/src/http/modules/perl && \$(MAKE) install
+END
+
+    NJT_INSTALL_PERL_MODULES=install_perl_modules
+
+fi
+
+
+case ".$NJT_SBIN_PATH" in
+    ./*)
+    ;;
+
+    *)
+        NJT_SBIN_PATH=$NJT_PREFIX/$NJT_SBIN_PATH
+    ;;
+esac
+
+
+case ".$NJT_MODULES_PATH" in
+    ./*)
+    ;;
+
+    *)
+        NJT_MODULES_PATH=$NJT_PREFIX/$NJT_MODULES_PATH
+    ;;
+esac
+
+NJT_MODULES_PATH=`dirname $NJT_MODULES_PATH/.`
+
+
+case ".$NJT_CONF_PATH" in
+    ./*)
+    ;;
+
+    *)
+        NJT_CONF_PATH=$NJT_PREFIX/$NJT_CONF_PATH
+    ;;
+esac
+
+
+NJT_CONF_PREFIX=`dirname $NJT_CONF_PATH`
+
+
+case ".$NJT_PID_PATH" in
+    ./*)
+    ;;
+
+    *)
+        NJT_PID_PATH=$NJT_PREFIX/$NJT_PID_PATH
+    ;;
+esac
+
+
+case ".$NJT_ERROR_LOG_PATH" in
+    ./* | .)
+    ;;
+
+    *)
+        NJT_ERROR_LOG_PATH=$NJT_PREFIX/$NJT_ERROR_LOG_PATH
+    ;;
+esac
+
+
+case ".$NJT_HTTP_LOG_PATH" in
+    ./*)
+    ;;
+
+    *)
+        NJT_HTTP_LOG_PATH=$NJT_PREFIX/$NJT_HTTP_LOG_PATH
+    ;;
+esac
+
+
+if test -f man/njet.8 ; then
+    NJT_MAN=man/njet.8
+else
+    NJT_MAN=docs/man/njet.8
+fi
+
+if test -d html ; then
+    NJT_HTML=html
+else
+    NJT_HTML=docs/html
+fi
+
+cat << END                                                    >> $NJT_MAKEFILE
+
+manpage:	$NJT_OBJS/njet.8
+
+$NJT_OBJS/njet.8:	$NJT_MAN $NJT_AUTO_CONFIG_H
+	sed -e "s|%%PREFIX%%|$NJT_PREFIX|" \\
+		-e "s|%%PID_PATH%%|$NJT_PID_PATH|" \\
+		-e "s|%%CONF_PATH%%|$NJT_CONF_PATH|" \\
+		-e "s|%%ERROR_LOG_PATH%%|${NJT_ERROR_LOG_PATH:-stderr}|" \\
+		< $NJT_MAN > \$@
+
+install:	build $NJT_INSTALL_PERL_MODULES
+	test -d '\$(DESTDIR)$NJT_PREFIX' || mkdir -p '\$(DESTDIR)$NJT_PREFIX'
+
+	test -d '\$(DESTDIR)`dirname "$NJT_SBIN_PATH"`' \\
+		|| mkdir -p '\$(DESTDIR)`dirname "$NJT_SBIN_PATH"`'
+	test ! -f '\$(DESTDIR)$NJT_SBIN_PATH' \\
+		|| mv '\$(DESTDIR)$NJT_SBIN_PATH' \\
+			'\$(DESTDIR)$NJT_SBIN_PATH.old'
+	cp $NJT_OBJS/njet '\$(DESTDIR)$NJT_SBIN_PATH'
+
+	test -d '\$(DESTDIR)$NJT_CONF_PREFIX' \\
+		|| mkdir -p '\$(DESTDIR)$NJT_CONF_PREFIX'
+
+	cp conf/koi-win '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/koi-utf '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/win-utf '\$(DESTDIR)$NJT_CONF_PREFIX'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/mime.types' \\
+		|| cp conf/mime.types '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/mime.types '\$(DESTDIR)$NJT_CONF_PREFIX/mime.types.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/fastcgi_params' \\
+		|| cp conf/fastcgi_params '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/fastcgi_params \\
+		'\$(DESTDIR)$NJT_CONF_PREFIX/fastcgi_params.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/fastcgi.conf' \\
+		|| cp conf/fastcgi.conf '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/fastcgi.conf '\$(DESTDIR)$NJT_CONF_PREFIX/fastcgi.conf.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/uwsgi_params' \\
+		|| cp conf/uwsgi_params '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/uwsgi_params \\
+		'\$(DESTDIR)$NJT_CONF_PREFIX/uwsgi_params.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/scgi_params' \\
+		|| cp conf/scgi_params '\$(DESTDIR)$NJT_CONF_PREFIX'
+	cp conf/scgi_params \\
+		'\$(DESTDIR)$NJT_CONF_PREFIX/scgi_params.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PATH' \\
+		|| sed -e "s|%%NJT_MODULES_PATH%%|$NJT_MODULES_PATH|g" \\
+			-e "s|%%NJT_CONF_PREFIX%%|$NJT_CONF_PREFIX|g" \\
+			< conf/njet.conf > '\$(DESTDIR)$NJT_CONF_PATH'
+	sed -e "s|%%NJT_MODULES_PATH%%|$NJT_MODULES_PATH|g" \\
+		-e "s|%%NJT_CONF_PREFIX%%|$NJT_CONF_PREFIX|g" \\
+		< conf/njet.conf >'\$(DESTDIR)$NJT_CONF_PREFIX/njet.conf.default'
+
+	test -f '\$(DESTDIR)$NJT_CONF_PREFIX/njet_ctrl.conf' \\
+		|| sed -e "s|%%NJT_MODULES_PATH%%|$NJT_MODULES_PATH|g" \\
+			-e "s|%%NJT_CONF_PREFIX%%|$NJT_CONF_PREFIX|g" \\
+			< conf/njet_ctrl.conf > '\$(DESTDIR)$NJT_CONF_PREFIX/njet_ctrl.conf'
+	sed -e "s|%%NJT_MODULES_PATH%%|$NJT_MODULES_PATH|g" \\
+		-e "s|%%NJT_CONF_PREFIX%%|$NJT_CONF_PREFIX|g" \\
+		< conf/njet_ctrl.conf >'\$(DESTDIR)$NJT_CONF_PREFIX/njet_ctrl.conf.default'
+	
+	test -d '\$(DESTDIR)`dirname "$NJT_PID_PATH"`' \\
+		|| mkdir -p '\$(DESTDIR)`dirname "$NJT_PID_PATH"`'
+
+	test -d '\$(DESTDIR)`dirname "$NJT_HTTP_LOG_PATH"`' \\
+		|| mkdir -p '\$(DESTDIR)`dirname "$NJT_HTTP_LOG_PATH"`'
+
+	test -d '\$(DESTDIR)$NJT_PREFIX/html' \\
+		|| cp -R $NJT_HTML '\$(DESTDIR)$NJT_PREFIX'
+
+	install -d -m 777 '\$(DESTDIR)$NJT_PREFIX/logs'
+	install -d -m 777 '\$(DESTDIR)$NJT_PREFIX/data'
+	
+	test -d build/rpm/njet.conf.files/usr/local/njet/conf/modsec \\
+               && cp -a build/rpm/njet.conf.files/usr/local/njet/conf/modsec \$(DESTDIR)$NJT_CONF_PREFIX/
+
+	setcap cap_dac_override,cap_dac_read_search,cap_net_bind_service,cap_net_admin,cap_net_raw,cap_setuid=eip '\$(DESTDIR)$NJT_SBIN_PATH'
+END
+
+
+if test -n "$NJT_ERROR_LOG_PATH"; then
+    cat << END                                                >> $NJT_MAKEFILE
+
+	test -d '\$(DESTDIR)`dirname "$NJT_ERROR_LOG_PATH"`' \\
+		|| mkdir -p '\$(DESTDIR)`dirname "$NJT_ERROR_LOG_PATH"`'
+END
+
+fi
+
+if test -n "$GO_CONF_HELPER_PATH"; then
+if test -f "$GO_CONF_HELPER_PATH"; then
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+	cp $GO_CONF_HELLPER_PATH '\$(DESTDIR)`dirname "$NJT_SBIN_PATH"`/go-conf-helper'
+END
+	# ln -sf '\$(DESTDIR)`dirname "$NJT_SBIN_PATH"`/conf-merge' '\$(DESTDIR)$NJT_CONF_PREFIX/go-conf-helper'
+
+fi
+fi
+
+
+if test -n "$DYNAMIC_MODULES"; then
+    cat << END                                                >> $NJT_MAKEFILE
+
+	test -d '\$(DESTDIR)$NJT_MODULES_PATH' \\
+		|| mkdir -p '\$(DESTDIR)$NJT_MODULES_PATH'
+END
+
+fi
+
+
+for njt_module in $DYNAMIC_MODULES
+do
+    njt_module=$njt_module$njt_modext
+
+    cat << END                                                >> $NJT_MAKEFILE
+
+	test ! -f '\$(DESTDIR)$NJT_MODULES_PATH/$njt_module' \\
+		|| mv '\$(DESTDIR)$NJT_MODULES_PATH/$njt_module' \\
+			'\$(DESTDIR)$NJT_MODULES_PATH/$njt_module.old'
+	cp $NJT_OBJS/$njt_module '\$(DESTDIR)$NJT_MODULES_PATH/$njt_module'
+END
+
+done
+
+
+# create Makefile
+
+cat << END >> Makefile
+
+build:
+	\$(MAKE) -f $NJT_MAKEFILE
+
+install:
+	\$(MAKE) -f $NJT_MAKEFILE install
+
+modules:
+	\$(MAKE) -f $NJT_MAKEFILE modules
+
+upgrade:
+	$NJT_SBIN_PATH -t
+
+	kill -USR2 \`cat $NJT_PID_PATH\`
+	sleep 1
+	test -f $NJT_PID_PATH.oldbin
+
+	kill -QUIT \`cat $NJT_PID_PATH.oldbin\`
+
+.PHONY:	build install modules upgrade
+END

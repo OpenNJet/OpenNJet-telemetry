@@ -1,0 +1,9 @@
+OpenNJet-telemetry
+Copyright (C) 2021-2023 TMLake(Beijing) Technology Co., Ltd.
+
+产品第三方开源代码引入情况
+
+open-telemetry
+https://github.com/open-telemetry/opentelemetry-cpp-contrib
+licensed under the Apache License 2.0
+源代码修改之后引入

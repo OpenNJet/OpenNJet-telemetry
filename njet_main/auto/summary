@@ -1,0 +1,83 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+echo
+echo "Configuration summary"
+
+
+if [ $USE_THREADS = YES ]; then
+    echo "  + using threads"
+fi
+
+if [ $USE_PCRE = DISABLED ]; then
+    echo "  + PCRE library is disabled"
+
+else
+    case $PCRE in
+        YES)   echo "  + using system $PCRE_LIBRARY library" ;;
+        NONE)  echo "  + PCRE library is not used" ;;
+        *)     echo "  + using $PCRE_LIBRARY library: $PCRE" ;;
+    esac
+fi
+
+case $OPENSSL in
+    YES)   echo "  + using system OpenSSL library" ;;
+    NONE)  echo "  + OpenSSL library is not used" ;;
+    *)     echo "  + using OpenSSL library: $OPENSSL" ;;
+esac
+
+case $ZLIB in
+    YES)   echo "  + using system zlib library" ;;
+    NONE)  echo "  + zlib library is not used" ;;
+    *)     echo "  + using zlib library: $ZLIB" ;;
+esac
+
+case $NJT_LIBATOMIC in
+    YES)   echo "  + using system libatomic_ops library" ;;
+    NO)    ;; # not used
+    *)     echo "  + using libatomic_ops library: $NJT_LIBATOMIC" ;;
+esac
+
+echo
+
+
+cat << END
+  njet path prefix: "$NJT_PREFIX"
+  njet binary file: "$NJT_SBIN_PATH"
+  njet modules path: "$NJT_MODULES_PATH"
+  njet configuration prefix: "$NJT_CONF_PREFIX"
+  njet configuration file: "$NJT_CONF_PATH"
+  njet pid file: "$NJT_PID_PATH"
+END
+
+if test -n "$NJT_ERROR_LOG_PATH"; then
+    echo "  njet error log file: \"$NJT_ERROR_LOG_PATH\""
+else
+    echo "  njet logs errors to stderr"
+fi
+
+cat << END
+  njet http access log file: "$NJT_HTTP_LOG_PATH"
+  njet http client request body temporary files: "$NJT_HTTP_CLIENT_TEMP_PATH"
+END
+
+if [ $HTTP_PROXY = YES ]; then
+    echo "  njet http proxy temporary files: \"$NJT_HTTP_PROXY_TEMP_PATH\""
+fi
+
+if [ $HTTP_FASTCGI = YES ]; then
+    echo "  njet http fastcgi temporary files: \"$NJT_HTTP_FASTCGI_TEMP_PATH\""
+fi
+
+if [ $HTTP_UWSGI = YES ]; then
+    echo "  njet http uwsgi temporary files: \"$NJT_HTTP_UWSGI_TEMP_PATH\""
+fi
+
+if [ $HTTP_SCGI = YES ]; then
+    echo "  njet http scgi temporary files: \"$NJT_HTTP_SCGI_TEMP_PATH\""
+fi
+
+echo "$NJT_POST_CONF_MSG"

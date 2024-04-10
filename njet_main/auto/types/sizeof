@@ -1,0 +1,77 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+echo $njt_n "checking for $njt_type size ...$njt_c"
+
+cat << END >> $NJT_AUTOCONF_ERR
+
+----------------------------------------
+checking for $njt_type size
+
+END
+
+njt_size=
+
+cat << END > $NJT_AUTOTEST.c
+
+#include <sys/types.h>
+#include <sys/time.h>
+$NJT_INCLUDE_UNISTD_H
+#include <signal.h>
+#include <stdio.h>
+#include <sys/resource.h>
+$NJT_INCLUDE_INTTYPES_H
+$NJT_INCLUDE_AUTO_CONFIG_H
+
+int main(void) {
+    printf("%d", (int) sizeof($njt_type));
+    return 0;
+}
+
+END
+
+
+njt_test="$CC $CC_TEST_FLAGS $CC_AUX_FLAGS \
+          -o $NJT_AUTOTEST $NJT_AUTOTEST.c $NJT_LD_OPT $njt_feature_libs"
+
+eval "$njt_test >> $NJT_AUTOCONF_ERR 2>&1"
+
+
+if [ -x $NJT_AUTOTEST ]; then
+    njt_size=`$NJT_AUTOTEST`
+    echo " $njt_size bytes"
+fi
+
+
+case $njt_size in
+    4)
+        njt_max_value=2147483647
+        njt_max_len='(sizeof("-2147483648") - 1)'
+    ;;
+
+    8)
+        njt_max_value=9223372036854775807LL
+        njt_max_len='(sizeof("-9223372036854775808") - 1)'
+    ;;
+
+    *)
+        echo
+        echo "$0: error: can not detect $njt_type size"
+
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+        cat $NJT_AUTOTEST.c  >> $NJT_AUTOCONF_ERR
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+        echo $njt_test       >> $NJT_AUTOCONF_ERR
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+
+        rm -rf $NJT_AUTOTEST*
+
+        exit 1
+esac
+
+
+rm -rf $NJT_AUTOTEST*
+

@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-bson.dir/src/unit-bson.cpp.o CMakeFiles/doctest_main.dir/src/unit.cpp.o  -o test-bson 

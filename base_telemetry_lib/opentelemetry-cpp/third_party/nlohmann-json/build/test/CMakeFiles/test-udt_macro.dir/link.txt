@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-udt_macro.dir/src/unit-udt_macro.cpp.o CMakeFiles/doctest_main.dir/src/unit.cpp.o  -o test-udt_macro 

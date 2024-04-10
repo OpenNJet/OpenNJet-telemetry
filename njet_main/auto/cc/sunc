@@ -1,0 +1,164 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+# Sun C 5.7 Patch 117837-04 2005/05/11    Sun Studio 10
+# Sun C 5.8 2005/10/13                    Sun Studio 11
+# Sun C 5.9 SunOS_i386 2007/05/03         Sun Studio 12
+# Sun C 5.9 SunOS_sparc 2007/05/03
+# Sun C 5.10 SunOS_i386 2009/06/03        Sun Studio 12.1
+# Sun C 5.11 SunOS_i386 2010/08/13        Oracle Solaris Studio 12.2
+# Sun C 5.12 SunOS_i386 2011/11/16        Oracle Solaris Studio 12.3
+# Sun C 5.13 SunOS_i386 2014/10/20        Oracle Solaris Studio 12.4
+# Sun C 5.14 SunOS_i386 2016/05/31        Oracle Developer Studio 12.5
+
+NJT_SUNC_VER=`$CC -V 2>&1 | grep 'Sun C' 2>&1 \
+                          | sed -e 's/^.* Sun C \(.*\)/\1/'`
+
+echo " + Sun C version: $NJT_SUNC_VER"
+
+have=NJT_COMPILER value="\"Sun C $NJT_SUNC_VER\"" . auto/define
+
+
+cat << END > $NJT_AUTOTEST.c
+
+int main(void) {
+    printf("%d", __SUNPRO_C);
+    return 0;
+}
+
+END
+
+eval "$CC -o $NJT_AUTOTEST $NJT_AUTOTEST.c >> $NJT_ERR 2>&1"
+
+if [ -x $NJT_AUTOTEST ]; then
+    njt_sunc_ver=`$NJT_AUTOTEST`
+fi
+
+rm -rf $NJT_AUTOTEST*
+
+# 1424 == 0x590, Sun Studio 12
+
+if [ "$njt_sunc_ver" -ge 1424 ]; then
+    njt_sparc32="-m32"
+    njt_sparc64="-m64"
+    njt_amd64="-m64"
+
+else
+    njt_sparc32="-xarch=v8plus"
+    njt_sparc64="-xarch=v9"
+    njt_amd64="-xarch=amd64"
+fi
+
+case "$NJT_MACHINE" in
+
+    i86pc)
+        NJT_AUX=" src/os/unix/njt_sunpro_x86.il"
+    ;;
+
+    sun4u | sun4v)
+        NJT_AUX=" src/os/unix/njt_sunpro_sparc64.il"
+    ;;
+
+esac
+
+MAIN_LINK=
+MODULE_LINK="-G"
+
+
+# optimizations
+
+# 20736 == 0x5100, Sun Studio 12.1
+
+if [ "$njt_sunc_ver" -ge 20736 ]; then
+    njt_fast="-fast"
+
+else
+    # older versions had problems with bit-fields
+    njt_fast="-fast -xalias_level=any"
+fi
+
+IPO=-xipo
+CFLAGS="$CFLAGS $njt_fast $IPO"
+CORE_LINK="$CORE_LINK $njt_fast $IPO"
+
+
+case $CPU in
+    pentium)
+        # optimize for Pentium and Athlon
+        CPU_OPT="-xchip=pentium"
+    ;;
+
+    pentiumpro)
+        # optimize for Pentium Pro, Pentium II
+        CPU_OPT="-xchip=pentium_pro"
+    ;;
+
+    pentium3)
+        # optimize for Pentium III
+        CPU_OPT="-xchip=pentium3"
+        #CPU_OPT="$CPU_OPT -xarch=sse"
+        CPU_OPT="$CPU_OPT -xcache=16/32/4:256/32/4"
+    ;;
+
+    pentium4)
+        # optimize for Pentium 4
+        CPU_OPT="-xchip=pentium4"
+        #CPU_OPT="$CPU_OPT -xarch=sse2"
+        CPU_OPT="$CPU_OPT -xcache=8/64/4:256/128/8"
+    ;;
+
+    opteron)
+        # optimize for Opteron
+        CPU_OPT="-xchip=opteron"
+        #CPU_OPT="$CPU_OPT -xarch=sse2"
+        CPU_OPT="$CPU_OPT -xcache=64/64/2:1024/64/16"
+    ;;
+
+    sparc32)
+        # build 32-bit UltraSparc binary
+        CPU_OPT="$njt_sparc32"
+        CORE_LINK="$CORE_LINK $njt_sparc32"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS $njt_sparc32"
+        NJT_CPU_CACHE_LINE=64
+    ;;
+
+    sparc64)
+        # build 64-bit UltraSparc binary
+        CPU_OPT="$njt_sparc64"
+        CORE_LINK="$CORE_LINK $njt_sparc64"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS $njt_sparc64"
+        NJT_CPU_CACHE_LINE=64
+    ;;
+
+    amd64)
+        # build 64-bit amd64 binary
+        CPU_OPT="$njt_amd64"
+        CORE_LINK="$CORE_LINK $njt_amd64"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS $njt_amd64"
+        NJT_AUX=" src/os/unix/njt_sunpro_amd64.il"
+        NJT_CPU_CACHE_LINE=64
+    ;;
+
+esac
+
+
+CFLAGS="$CFLAGS $CPU_OPT"
+
+
+if [ ".$PCRE_OPT" = "." ]; then
+    PCRE_OPT="$njt_fast $IPO $CPU_OPT"
+fi
+
+if [ ".$ZLIB_OPT" = "." ]; then
+    ZLIB_OPT="$njt_fast $IPO $CPU_OPT"
+fi
+
+
+# stop on warning
+CFLAGS="$CFLAGS -errwarn=%all"
+
+# debug
+CFLAGS="$CFLAGS -g"

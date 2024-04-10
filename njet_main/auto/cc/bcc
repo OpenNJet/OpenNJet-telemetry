@@ -1,0 +1,72 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+# Borland C++ 5.5
+
+# optimizations
+
+# maximize speed
+CFLAGS="$CFLAGS -O2"
+
+case $CPU in
+    pentium)
+        # optimize for Pentium and Athlon
+        CPU_OPT="-5"
+    ;;
+
+    pentiumpro)
+        # optimize for Pentium Pro, Pentium II and Pentium III
+        CPU_OPT="-6"
+    ;;
+esac
+
+# __stdcall
+#CPU_OPT="$CPU_OPT -ps"
+# __fastcall
+#CPU_OPT="$CPU_OPT -pr"
+
+CFLAGS="$CFLAGS $CPU_OPT"
+
+# multithreaded
+CFLAGS="$CFLAGS -tWM"
+
+# stop on warning
+CFLAGS="$CFLAGS -w!"
+
+# disable logo
+CFLAGS="$CFLAGS -q"
+
+
+# precompiled headers
+CORE_DEPS="$CORE_DEPS $NJT_OBJS/njt_config.csm"
+NJT_PCH="$NJT_OBJS/njt_config.csm"
+NJT_BUILD_PCH="-H=$NJT_OBJS/njt_config.csm"
+NJT_USE_PCH="-Hu -H=$NJT_OBJS/njt_config.csm"
+
+
+# Win32 GUI mode application
+#LINK="\$(CC) -laa"
+
+
+# the resource file
+NJT_RES="$NJT_OBJS/njet.res"
+NJT_RCC="brcc32 -fo$NJT_OBJS/njet.res \$(CORE_INCS) $NJT_WIN32_RC"
+# the pragma allows to link the resource file using bcc32 and
+# to avoid the direct ilink32 calling and the c0w32.obj's WinMain/main problem
+NJT_PRAGMA="#pragma resource \"$NJT_OBJS/njet.res\""
+
+
+njt_include_opt="-I"
+njt_objout="-o"
+njt_binout="-e"
+njt_objext="obj"
+
+njt_long_start='@&&|
+	'
+njt_long_end='|'
+
+njt_regex_dirsep='\\'
+njt_dirsep="\\"

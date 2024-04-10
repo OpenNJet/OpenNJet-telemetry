@@ -1,0 +1,54 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+NJT_MAKEFILE=$NJT_OBJS/Makefile
+NJT_MODULES_C=$NJT_OBJS/njt_modules.c
+
+NJT_AUTO_HEADERS_H=$NJT_OBJS/njt_auto_headers.h
+NJT_AUTO_CONFIG_H=$NJT_OBJS/njt_auto_config.h
+
+NJT_AUTOTEST=$NJT_OBJS/autotest
+NJT_AUTOCONF_ERR=$NJT_OBJS/autoconf.err
+
+# STUBs
+NJT_ERR=$NJT_OBJS/autoconf.err
+MAKEFILE=$NJT_OBJS/Makefile
+
+
+NJT_PCH=
+NJT_USE_PCH=
+
+
+# check the echo's "-n" option and "\c" capability
+
+if echo "test\c" | grep c >/dev/null; then
+
+    if echo -n test | grep n >/dev/null; then
+        njt_n=
+        njt_c=
+
+    else
+        njt_n=-n
+        njt_c=
+    fi
+
+else
+    njt_n=
+    njt_c='\c'
+fi
+
+
+# create Makefile
+
+cat << END > Makefile
+
+default:	build
+
+clean:
+	rm -rf Makefile $NJT_OBJS
+
+.PHONY:	default clean
+END

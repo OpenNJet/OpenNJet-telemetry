@@ -1,0 +1,172 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+# MSVC 6.0 SP2                            cl 12.00
+# MSVC Toolkit 2003 (7.1)                 cl 13.10
+# MSVC 2005 Express Edition SP1 (8.0)     cl 14.00
+# MSVC 2008 Express Edition (9.0)         cl 15.00
+# MSVC 2010 (10.0)                        cl 16.00
+# MSVC 2015 (14.0)                        cl 19.00
+
+
+NJT_MSVC_VER=`$NJT_WINE $CC 2>&1 | grep 'C/C++.* [0-9][0-9]*\.[0-9]' 2>&1 \
+                                 | sed -e 's/^.* \([0-9][0-9]*\.[0-9].*\)/\1/'`
+
+echo " + cl version: $NJT_MSVC_VER"
+
+have=NJT_COMPILER value="\"cl $NJT_MSVC_VER\"" . auto/define
+
+
+njt_msvc_ver=`echo $NJT_MSVC_VER | sed -e 's/^\([0-9]*\).*/\1/'`
+
+
+# detect x64 builds
+
+case "$NJT_MSVC_VER" in
+
+    *x64)
+        NJT_MACHINE=amd64
+    ;;
+
+    *)
+        NJT_MACHINE=i386
+    ;;
+
+esac
+
+
+# optimizations
+
+# maximize speed, equivalent to -Og -Oi -Ot -Oy -Ob2 -Gs -GF -Gy
+CFLAGS="$CFLAGS -O2"
+
+# enable global optimization
+#CFLAGS="$CFLAGS -Og"
+# enable intrinsic functions
+#CFLAGS="$CFLAGS -Oi"
+
+# disable inline expansion
+#CFLAGS="$CFLAGS -Ob0"
+# explicit inline expansion
+#CFLAGS="$CFLAGS -Ob1"
+# explicit and implicit inline expansion
+#CFLAGS="$CFLAGS -Ob2"
+
+# enable frame pointer omission
+#CFLAGS="$CFLAGS -Oy"
+# disable stack checking calls
+#CFLAGS="$CFLAGS -Gs"
+
+# pools strings as read/write
+#CFLAGS="$CFLAGS -Gf"
+# pools strings as read-only
+#CFLAGS="$CFLAGS -GF"
+
+
+case $CPU in
+    pentium)
+        # optimize for Pentium and Athlon
+        CPU_OPT="-G5"
+    ;;
+
+    pentiumpro)
+        # optimize for Pentium Pro, Pentium II and Pentium III
+        CPU_OPT="-G6"
+    ;;
+
+    pentium4)
+        # optimize for Pentium 4, MSVC 7
+        CPU_OPT="-G7"
+    ;;
+esac
+
+# __cdecl, default, must be used with OpenSSL, md5 asm, and sha1 asm
+#CPU_OPT="$CPU_OPT -Gd"
+# __stdcall
+#CPU_OPT="$CPU_OPT -Gz"
+# __fastcall
+#CPU_OPT="$CPU_OPT -Gr"
+
+
+CFLAGS="$CFLAGS $CPU_OPT"
+
+
+# warnings
+
+CFLAGS="$CFLAGS -W4"
+
+# stop on warning
+CFLAGS="$CFLAGS -WX"
+
+# disable logo
+CFLAGS="$CFLAGS -nologo"
+
+# the link flags
+CORE_LINK="$CORE_LINK -link -verbose:lib"
+
+# link with libcmt.lib, multithreaded
+LIBC="-MT"
+# link with msvcrt.dll
+# however, MSVC Toolkit 2003 has no MSVCRT.LIB
+#LIBC="-MD"
+
+CFLAGS="$CFLAGS $LIBC"
+
+CORE_LIBS="$CORE_LIBS kernel32.lib user32.lib"
+
+# Win32 GUI mode application
+#CORE_LINK="$CORE_LINK -subsystem:windows -entry:mainCRTStartup"
+
+# debug
+# msvc under Wine issues
+# C1902: Program database manager mismatch; please check your installation
+if [ -z "$NJT_WINE" ]; then
+   CFLAGS="$CFLAGS -Zi -Fd$NJT_OBJS/njet.pdb"
+   CORE_LINK="$CORE_LINK -debug"
+fi
+
+
+# MSVC 2005 supports C99 variadic macros
+if [ "$njt_msvc_ver" -ge 14 ]; then
+    have=NJT_HAVE_C99_VARIADIC_MACROS . auto/have
+fi
+
+
+# precompiled headers
+CORE_DEPS="$CORE_DEPS $NJT_OBJS/njt_config.pch"
+CORE_LINK="$CORE_LINK $NJT_OBJS/njt_pch.obj"
+NJT_PCH="$NJT_OBJS/njt_config.pch"
+NJT_BUILD_PCH="-Ycnjt_config.h -Fp$NJT_OBJS/njt_config.pch"
+NJT_USE_PCH="-Yunjt_config.h -Fp$NJT_OBJS/njt_config.pch"
+
+
+# the resource file
+NJT_RES="$NJT_OBJS/njet.res"
+NJT_RCC="rc -fo$NJT_RES \$(CORE_INCS) $NJT_WIN32_RC"
+CORE_LINK="$NJT_RES $CORE_LINK"
+
+
+# dynamic modules
+#MAIN_LINK="-link -def:$NJT_OBJS/njet.def"
+#MODULE_LINK="-LD $NJT_OBJS/njet.lib"
+
+
+njt_pic_opt=
+njt_objout="-Fo"
+njt_binout="-Fe"
+njt_objext="obj"
+
+njt_long_start='@<<
+	'
+njt_long_end='<<'
+njt_long_regex_cont=' \
+	'
+njt_long_cont='
+	'
+
+# MSVC understand / in path
+#njt_regex_dirsep='\\'
+#njt_dirsep="\\"

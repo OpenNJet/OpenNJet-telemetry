@@ -1,0 +1,83 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+echo $njt_n "checking for $njt_type ...$njt_c"
+
+cat << END >> $NJT_AUTOCONF_ERR
+
+----------------------------------------
+checking for $njt_type
+
+END
+
+njt_found=no
+
+for njt_try in $njt_type $njt_types
+do
+
+    cat << END > $NJT_AUTOTEST.c
+
+#include <sys/types.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <netinet/in.h>
+$NJT_INCLUDE_INTTYPES_H
+
+int main(void) {
+    $njt_try i = 0;
+    return (int) i;
+}
+
+END
+
+    njt_test="$CC $CC_TEST_FLAGS $CC_AUX_FLAGS \
+              -o $NJT_AUTOTEST $NJT_AUTOTEST.c $NJT_LD_OPT $njt_feature_libs"
+
+    eval "$njt_test >> $NJT_AUTOCONF_ERR 2>&1"
+
+    if [ -x $NJT_AUTOTEST ]; then
+        if [ $njt_try = $njt_type ]; then
+            echo " found"
+            njt_found=yes
+        else
+            echo ", $njt_try used"
+            njt_found=$njt_try
+        fi
+    fi
+
+    if [ $njt_found = no ]; then
+        if [ $njt_try = $njt_type ]; then
+            echo $njt_n " $njt_try not found$njt_c"
+        else
+            echo $njt_n ", $njt_try not found$njt_c"
+        fi
+
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+        cat $NJT_AUTOTEST.c  >> $NJT_AUTOCONF_ERR
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+        echo $njt_test       >> $NJT_AUTOCONF_ERR
+        echo "----------"    >> $NJT_AUTOCONF_ERR
+    fi
+
+    rm -rf $NJT_AUTOTEST*
+
+    if [ $njt_found != no ]; then
+        break
+    fi
+done
+
+if [ $njt_found = no ]; then
+    echo
+    echo "$0: error: can not define $njt_type"
+
+    exit 1
+fi
+
+if [ $njt_found != yes ]; then
+    echo "typedef $njt_found  $njt_type;"   >> $NJT_AUTO_CONFIG_H
+fi

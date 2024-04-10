@@ -1,0 +1,59 @@
+FROM centos:7
+
+ARG GRPC_VERSION="1.36.4"
+
+RUN rm -rf /etc/yum.repos.d/*.repo 
+#COPY njet-telemetry/repos/*.repo /etc/yum.repos.d/
+COPY njet_otel_module/repos/*.repo /etc/yum.repos.d/
+
+RUN yum clean all
+
+
+RUN yum update -y \
+    && yum install -y \
+    && yum install wget -y \
+    && yum install -y zlib-devel \
+    && yum install -y openssl-devel \
+    && yum install pcre-devel -y \
+    && yum install xz -y \
+    && yum install httpd -y \
+    && yum clean all
+
+
+RUN yum install cmake3 -y
+RUN yum install make -y
+
+
+RUN yum -y install centos-release-scl \
+  && yum install yum-utils -y \
+  && yum-config-manager --enable rhel-server-rhscl-7-rpms -y \
+  && yum install devtoolset-7 -y \
+  && yum clean all
+ENV PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH}"
+
+
+RUN git clone https://github.com/grpc/grpc \
+  && cd grpc \
+  && git checkout tags/v${GRPC_VERSION} -b v${GRPC_VERSION} \
+  && git submodule update --init \
+  && sed -i "s/target_link_libraries(bssl ssl crypto)/target_link_libraries(bssl ssl crypto rt)/g" third_party/boringssl-with-bazel/CMakeLists.txt \
+  && mkdir -p cmake/build \
+  && cd cmake/build \
+  && rm -rf ./* \
+  && cmake3 ../.. -DgRPC_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DgRPC_ABSL_PROVIDER=module -DgRPC_CARES_PROVIDER=module -DgRPC_PROTOBUF_PROVIDER=module -DgRPC_RE2_PROVIDER=module -DgRPC_SSL_PROVIDER=module -DgRPC_ZLIB_PROVIDER=module \
+  && make \
+  && make install \
+RUN rm -rf grpc
+
+COPY njet_otel_module njet-telemetry
+RUN cd njet-telemetry \
+    && cd njet_main && ls -al && sh build_cc.sh conf && make -j `nproc` && cd .. \
+    && mkdir lib && cp baselibs/ubuntu/* lib/ \
+    && cp baselibs/ubuntu/* /usr/lib/  \
+    && cd njet_otel_module/build && cmake3 .. && make \
+    && cd ../../  \
+    && cd njet_otel_webserver_module/build && cmake3 .. && make \
+    && cd ../../
+
+#COPY entrypoint.sh /usr/local/bin/
+#ENTRYPOINT ["entrypoint.sh"]

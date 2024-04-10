@@ -1,0 +1,6 @@
+auto/lib
+src/http/njt_doc_gz.h
+build/
+*.swp
+./Makefile
+auto/lib/tassl/.openssl/

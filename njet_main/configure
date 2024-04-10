@@ -1,0 +1,120 @@
+#!/bin/sh
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+
+
+LC_ALL=C
+export LC_ALL
+
+. auto/options
+. auto/init
+. auto/sources
+
+test -d $NJT_OBJS || mkdir -p $NJT_OBJS
+
+echo > $NJT_AUTO_HEADERS_H
+echo > $NJT_AUTOCONF_ERR
+
+echo "#define NJT_CONFIGURE \"$NJT_CONFIGURE\"" > $NJT_AUTO_CONFIG_H
+
+
+if [ $NJT_DEBUG = YES ]; then
+    have=NJT_DEBUG . auto/have
+fi
+
+
+if test -z "$NJT_PLATFORM"; then
+    echo "checking for OS"
+
+    NJT_SYSTEM=`uname -s 2>/dev/null`
+    NJT_RELEASE=`uname -r 2>/dev/null`
+    NJT_MACHINE=`uname -m 2>/dev/null`
+
+    echo " + $NJT_SYSTEM $NJT_RELEASE $NJT_MACHINE"
+
+    NJT_PLATFORM="$NJT_SYSTEM:$NJT_RELEASE:$NJT_MACHINE";
+
+    case "$NJT_SYSTEM" in
+        MINGW32_* | MINGW64_* | MSYS_*)
+            NJT_PLATFORM=win32
+        ;;
+    esac
+
+else
+    echo "building for $NJT_PLATFORM"
+    NJT_SYSTEM=i386
+fi
+
+. auto/cc/conf
+
+if [ "$NJT_PLATFORM" != win32 ]; then
+    . auto/headers
+fi
+
+. auto/os/conf
+
+if [ "$NJT_PLATFORM" != win32 ]; then
+    . auto/unix
+fi
+
+. auto/threads
+. auto/modules
+. auto/lib/conf
+
+case ".$NJT_PREFIX" in
+    .)
+        NJT_PREFIX=${NJT_PREFIX:-/usr/local/njet}
+        have=NJT_PREFIX value="\"$NJT_PREFIX/\"" . auto/define
+    ;;
+
+    .!)
+        NJT_PREFIX=
+    ;;
+
+    *)
+        have=NJT_PREFIX value="\"$NJT_PREFIX/\"" . auto/define
+    ;;
+esac
+
+if [ ".$NJT_CONF_PREFIX" != "." ]; then
+    have=NJT_CONF_PREFIX value="\"$NJT_CONF_PREFIX/\"" . auto/define
+fi
+
+have=NJT_SBIN_PATH value="\"$NJT_SBIN_PATH\"" . auto/define
+have=NJT_CONF_PATH value="\"$NJT_CONF_PATH\"" . auto/define
+have=NJT_PID_PATH value="\"$NJT_PID_PATH\"" . auto/define
+have=NJT_LOCK_PATH value="\"$NJT_LOCK_PATH\"" . auto/define
+have=NJT_ERROR_LOG_PATH value="\"$NJT_ERROR_LOG_PATH\"" . auto/define
+
+if [ ".$NJT_ERROR_LOG_PATH" = "." ]; then
+    have=NJT_ERROR_LOG_STDERR . auto/have
+fi
+
+have=NJT_HTTP_LOG_PATH value="\"$NJT_HTTP_LOG_PATH\"" . auto/define
+have=NJT_HTTP_CLIENT_TEMP_PATH value="\"$NJT_HTTP_CLIENT_TEMP_PATH\""
+. auto/define
+have=NJT_HTTP_PROXY_TEMP_PATH value="\"$NJT_HTTP_PROXY_TEMP_PATH\""
+. auto/define
+have=NJT_HTTP_FASTCGI_TEMP_PATH value="\"$NJT_HTTP_FASTCGI_TEMP_PATH\""
+. auto/define
+have=NJT_HTTP_UWSGI_TEMP_PATH value="\"$NJT_HTTP_UWSGI_TEMP_PATH\""
+. auto/define
+have=NJT_HTTP_SCGI_TEMP_PATH value="\"$NJT_HTTP_SCGI_TEMP_PATH\""
+. auto/define
+
+. auto/make
+. auto/lib/make
+. auto/install
+
+# STUB
+. auto/stubs
+
+have=NJT_USER value="\"$NJT_USER\"" . auto/define
+have=NJT_GROUP value="\"$NJT_GROUP\"" . auto/define
+
+if [ ".$NJT_BUILD" != "." ]; then
+    have=NJT_BUILD value="\"$NJT_BUILD\"" . auto/define
+fi
+
+. auto/summary

@@ -1,0 +1,131 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+echo "checking for $NJT_SYSTEM specific features"
+
+case "$NJT_PLATFORM" in
+
+    FreeBSD:*)
+        . auto/os/freebsd
+    ;;
+
+    Linux:*)
+        . auto/os/linux
+    ;;
+
+    SunOS:*)
+        . auto/os/solaris
+    ;;
+
+    Darwin:*)
+        . auto/os/darwin
+    ;;
+
+    win32)
+        . auto/os/win32
+    ;;
+
+    DragonFly:*)
+        have=NJT_FREEBSD . auto/have_headers
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $FREEBSD_DEPS"
+        CORE_SRCS="$UNIX_SRCS $FREEBSD_SRCS"
+
+        echo " + sendfile() found"
+        have=NJT_HAVE_SENDFILE . auto/have
+        CORE_SRCS="$CORE_SRCS $FREEBSD_SENDFILE_SRCS"
+
+        njt_spacer='
+'
+    ;;
+
+    NetBSD:*)
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+
+        NJT_RPATH=YES
+    ;;
+
+    HP-UX:*)
+        # HP/UX
+        have=NJT_HPUX . auto/have_headers
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS -D_XOPEN_SOURCE -D_XOPEN_SOURCE_EXTENDED=1"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS -D_HPUX_ALT_XOPEN_SOCKET_API"
+    ;;
+
+    OSF1:*)
+        # Tru64 UNIX
+        have=NJT_TRU64 . auto/have_headers
+        have=NJT_HAVE_STRERROR_R . auto/nohave
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+    ;;
+
+    GNU:*)
+        # GNU Hurd
+        have=NJT_GNU_HURD . auto/have_headers
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+        CC_AUX_FLAGS="$CC_AUX_FLAGS -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64"
+    ;;
+
+    *)
+        CORE_INCS="$UNIX_INCS"
+        CORE_DEPS="$UNIX_DEPS $POSIX_DEPS"
+        CORE_SRCS="$UNIX_SRCS"
+    ;;
+
+esac
+
+
+case "$NJT_MACHINE" in
+
+    i386 | i686 | i86pc)
+        have=NJT_HAVE_NONALIGNED . auto/have
+        NJT_MACH_CACHE_LINE=32
+    ;;
+
+    amd64 | x86_64)
+        have=NJT_HAVE_NONALIGNED . auto/have
+        NJT_MACH_CACHE_LINE=64
+    ;;
+
+    sun4u | sun4v | sparc | sparc64)
+        have=NJT_ALIGNMENT value=16 . auto/define
+        # TODO
+        NJT_MACH_CACHE_LINE=64
+    ;;
+
+    ia64 )
+        have=NJT_ALIGNMENT value=16 . auto/define
+        # TODO
+        NJT_MACH_CACHE_LINE=64
+    ;;
+
+    aarch64 | arm64)
+        have=NJT_ALIGNMENT value=16 . auto/define
+        NJT_MACH_CACHE_LINE=64
+    ;;
+
+    *)
+        have=NJT_ALIGNMENT value=16 . auto/define
+        NJT_MACH_CACHE_LINE=32
+    ;;
+
+esac
+
+if test -z "$NJT_CPU_CACHE_LINE"; then
+    NJT_CPU_CACHE_LINE=$NJT_MACH_CACHE_LINE
+fi
+
+have=NJT_CPU_CACHE_LINE value=$NJT_CPU_CACHE_LINE . auto/define

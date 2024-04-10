@@ -1,0 +1,14 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Nginx, Inc.
+# Copyright (C) TMLake, Inc.
+
+
+njt_include="unistd.h";      . auto/include
+njt_include="inttypes.h";    . auto/include
+njt_include="limits.h";      . auto/include
+njt_include="sys/filio.h";   . auto/include
+njt_include="sys/param.h";   . auto/include
+njt_include="sys/mount.h";   . auto/include
+njt_include="sys/statvfs.h"; . auto/include
+njt_include="crypt.h";       . auto/include

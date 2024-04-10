@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/test-assert_macro.dir/src/unit-assert_macro.cpp.o CMakeFiles/doctest_main.dir/src/unit.cpp.o  -o test-assert_macro 
